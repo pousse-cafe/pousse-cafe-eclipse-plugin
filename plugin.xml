@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+   <extension
+         id="pousseCafeBuilder"
+         name="Pousse-Café Builder"
+         point="org.eclipse.core.resources.builders">
+      <builder
+            hasNature="true">
+         <run
+               class="poussecafe.eclipse.plugin.builder.PousseCafeBuilder">
+         </run>
+      </builder>
+   </extension>
+   <extension
+         id="pousseCafeNature"
+         name="Pousse-Café Nature"
+         point="org.eclipse.core.resources.natures">
+      <runtime>
+         <run
+               class="poussecafe.eclipse.plugin.builder.PousseCafeNature">
+         </run>
+      </runtime>
+      <builder
+            id="poussecafe.eclipse.plugin.pousseCafeBuilder">
+      </builder>
+   </extension>
+   <extension
+         point="org.eclipse.ui.commands">
+      <category
+            id="poussecafe.eclipse.plugin.pousseCafeNature.category"
+            name="Pousse-Café Nature commands">
+      </category>
+      <command
+            categoryId="poussecafe.eclipse.plugin.pousseCafeNature.category"
+            defaultHandler="poussecafe.eclipse.plugin.builder.AddRemovePousseCafeNatureHandler"
+            id="poussecafe.eclipse.plugin.addRemovePousseCafeNature"
+            name="Add/Remove Pousse-Café Nature">
+      </command>
+   </extension>
+   <extension
+         point="org.eclipse.ui.menus">
+      <menuContribution
+            locationURI="popup:org.eclipse.ui.projectConfigure?after=additions">
+         <command
+               commandId="poussecafe.eclipse.plugin.addRemovePousseCafeNature"
+               label="Disable Pousse-Café nature"
+               style="push">
+            <visibleWhen
+                  checkEnabled="false">
+               <with
+                     variable="selection">
+                  <count
+                        value="1">
+                  </count>
+                  <iterate>
+                     <adapt
+                           type="org.eclipse.core.resources.IProject">
+                        <test
+                              property="org.eclipse.core.resources.projectNature"
+                              value="poussecafe.eclipse.plugin.pousseCafeNature">
+                        </test>
+                     </adapt>
+                  </iterate>
+               </with>
+            </visibleWhen>
+         </command>
+         <command
+               commandId="poussecafe.eclipse.plugin.addRemovePousseCafeNature"
+               label="Enable Pousse-Café nature"
+               style="push">
+            <visibleWhen
+                  checkEnabled="false">
+               <with
+                     variable="selection">
+                  <count
+                        value="1">
+                  </count>
+                  <iterate>
+                     <adapt
+                           type="org.eclipse.core.resources.IProject">
+                       <and>
+                            <not>
+                               <test
+                                     property="org.eclipse.core.resources.projectNature"
+                                     value="poussecafe.eclipse.plugin.pousseCafeNature">
+                               </test>
+                            </not>
+                            <test
+                                 property="org.eclipse.core.resources.projectNature"
+                                 value="org.eclipse.jdt.core.javanature">
+                           </test>
+                        </and>
+                     </adapt>
+                  </iterate>
+               </with>
+            </visibleWhen>
+         </command>
+      </menuContribution>
+   </extension>
+   <extension
+         id="pousseCafeProblem"
+         name="Pousse-Café Problem"
+         point="org.eclipse.core.resources.markers">
+      <super
+            type="org.eclipse.core.resources.problemmarker">
+      </super>
+      <persistent
+            value="true">
+      </persistent>
+   </extension>
+</plugin>

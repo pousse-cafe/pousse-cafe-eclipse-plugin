@@ -1,0 +1,14 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Pousse-Café Eclipse Plugin
+Bundle-SymbolicName: poussecafe.eclipse.plugin;singleton:=true
+Bundle-Version: 0.1.0.202012162254
+Automatic-Module-Name: pousse.cafe.eclipse.plugin
+Bundle-RequiredExecutionEnvironment: JavaSE-11
+Require-Bundle: org.eclipse.ui,
+ org.eclipse.core.runtime,
+ org.eclipse.core.resources,
+ pousseCafeSourceEclipsePlugin;bundle-version="0.25.0"
+Import-Package: javax.inject,
+ org.eclipse.jdt.core,
+ org.eclipse.jdt.core.dom

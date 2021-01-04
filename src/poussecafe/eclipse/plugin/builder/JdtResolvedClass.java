@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import org.eclipse.core.runtime.Platform;
+import org.eclipse.jdt.core.IField;
 import org.eclipse.jdt.core.IType;
 import org.eclipse.jdt.core.JavaModelException;
 import poussecafe.source.analysis.ClassResolver;
@@ -90,6 +91,19 @@ public class JdtResolvedClass implements ResolvedClass {
     }
 
     private JdtClassResolver resolver;
+
+    @Override
+    public Optional<Object> staticFieldValue(String constantName) {
+        return Optional.ofNullable(getConstant(type.getField(constantName)));
+    }
+
+    private Object getConstant(IField field) {
+        try {
+            return field.getConstant();
+        } catch (JavaModelException e) {
+            return null;
+        }
+    }
 
     public static class Builder {
 

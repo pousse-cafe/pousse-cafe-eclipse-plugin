@@ -1,8 +1,8 @@
 package poussecafe.eclipse.plugin.builder;
 
 import org.eclipse.core.resources.IFile;
-import org.eclipse.core.resources.IProject;
 import org.eclipse.jdt.core.ICompilationUnit;
+import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.core.dom.ASTParser;
 import poussecafe.source.Source;
@@ -32,8 +32,7 @@ public class ResourceSource implements Source {
             source.id = file.getFullPath().toString();
 
             requireNonNull(project);
-            var javaProject = JavaCore.create(project);
-            source.compilationUnit = (ICompilationUnit) JavaCore.create(file, javaProject);
+            source.compilationUnit = (ICompilationUnit) JavaCore.create(file, project);
 
             return source;
         }
@@ -47,12 +46,12 @@ public class ResourceSource implements Source {
 
         private ResourceSource source = new ResourceSource();
 
-        public Builder project(IProject project) {
+        public Builder project(IJavaProject project) {
             this.project = project;
             return this;
         }
 
-        private IProject project;
+        private IJavaProject project;
     }
 
     private ResourceSource() {

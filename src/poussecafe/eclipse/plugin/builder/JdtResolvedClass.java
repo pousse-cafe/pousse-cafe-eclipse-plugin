@@ -19,13 +19,17 @@ public class JdtResolvedClass implements ResolvedClass {
     @Override
     public Optional<ResolvedClass> declaringClass() {
         if(type.getFullyQualifiedName().charAt('$') != -1) {
-            return Optional.of(resolver.declaringClass(type));
+            return resolver.declaringClass(type).map(jdtClass -> (ResolvedClass) jdtClass);
         } else {
             return Optional.empty();
         }
     }
 
     private IType type;
+
+    public IType type() {
+        return type;
+    }
 
     @Override
     public List<ResolvedClass> innerClasses() {
@@ -67,16 +71,11 @@ public class JdtResolvedClass implements ResolvedClass {
     }
 
     private boolean instanceOf(JdtResolvedClass consideredType) {
-        try {
-            if(consideredType.name().equals(name())) {
-                return true;
-            } else {
-                var hierarchy = type.newSupertypeHierarchy(null);
-                return hierarchy.contains(consideredType.type);
-            }
-        } catch (JavaModelException e) {
-            logError("Failure with " + consideredType.type, e);
-            return false;
+        if(consideredType.name().equals(name())) {
+            return true;
+        } else {
+            var hierarchy = resolver.newSupertypeHierarchy(type);
+            return hierarchy.contains(consideredType.type);
         }
     }
 

@@ -1,8 +1,12 @@
 package poussecafe.eclipse.plugin.builder;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.core.IType;
+import org.eclipse.jdt.core.ITypeHierarchy;
 import org.eclipse.jdt.core.JavaModelException;
 import poussecafe.source.analysis.ClassResolver;
 
@@ -17,26 +21,34 @@ public class JdtClassResolver extends ClassResolver {
             if(type == null) {
                 throw new ClassNotFoundException();
             } else {
-                return new JdtResolvedClass.Builder()
-                        .resolver(this)
-                        .type(type)
-                        .build();
+                return resolve(type);
             }
         } catch (JavaModelException e) {
             throw new ClassNotFoundException("Unable to find type " + name, e);
         }
     }
 
+    public JdtResolvedClass resolve(IType type) {
+        return new JdtResolvedClass.Builder()
+                .resolver(this)
+                .type(type)
+                .build();
+    }
+
     private IJavaProject project;
 
-    public JdtResolvedClass declaringClass(IType type) {
+    public Optional<JdtResolvedClass> declaringClass(IType type) {
         try {
             String fullyQualifiedName = type.getFullyQualifiedName();
             int declaringClassNameEnd = declaringClassNameEnd(fullyQualifiedName);
-            return loadClass(fullyQualifiedName.substring(0, declaringClassNameEnd));
+            if(declaringClassNameEnd == -1) {
+                return Optional.empty();
+            } else {
+                return Optional.of(loadClass(fullyQualifiedName.substring(0, declaringClassNameEnd)));
+            }
         } catch (ClassNotFoundException e) {
             Platform.getLog(getClass()).error("Unable to get declaring class of " + type, e);
-            return null;
+            return Optional.empty();
         }
     }
 
@@ -52,5 +64,33 @@ public class JdtClassResolver extends ClassResolver {
     public JdtClassResolver(IJavaProject project) {
         requireNonNull(project);
         this.project = project;
+    }
+
+    public ITypeHierarchy newSupertypeHierarchy(IType type) {
+        return supertypeHierarchyCache.computeIfAbsent(type, this::supertypeHierarchy);
+    }
+
+    private Map<IType, ITypeHierarchy> supertypeHierarchyCache = new HashMap<>();
+
+    private ITypeHierarchy supertypeHierarchy(IType type) {
+        try {
+            return type.newSupertypeHierarchy(null);
+        } catch (JavaModelException e) {
+            throw new UnsupportedOperationException(e);
+        }
+    }
+
+    public ITypeHierarchy newTypeHierarchy(IType type) {
+        return typeHierarchyCache.computeIfAbsent(type, this::typeHierarchy);
+    }
+
+    private Map<IType, ITypeHierarchy> typeHierarchyCache = new HashMap<>();
+
+    private ITypeHierarchy typeHierarchy(IType type) {
+        try {
+            return type.newTypeHierarchy(null);
+        } catch (JavaModelException e) {
+            throw new UnsupportedOperationException(e);
+        }
     }
 }

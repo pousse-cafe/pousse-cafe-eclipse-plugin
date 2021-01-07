@@ -74,7 +74,7 @@ public class JdtResolvedClass implements ResolvedClass {
         if(consideredType.name().equals(name())) {
             return true;
         } else {
-            var hierarchy = resolver.newSupertypeHierarchy(type);
+            var hierarchy = resolver.typeHierarchies().newSupertypeHierarchy(type);
             return hierarchy.contains(consideredType.type);
         }
     }

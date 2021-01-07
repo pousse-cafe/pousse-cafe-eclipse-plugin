@@ -14,7 +14,7 @@ public class JdtClassPathExplorer implements ClassPathExplorer {
     @Override
     public Set<ResolvedClass> getSubTypesOf(Name superTypeName) {
         var resolvedClass = (JdtResolvedClass) classResolver.loadClass(superTypeName).orElseThrow();
-        var hierarchy = classResolver.newTypeHierarchy(resolvedClass.type());
+        var hierarchy = classResolver.typeHierarchies().newTypeHierarchy(resolvedClass.type());
         return Arrays.stream(hierarchy.getAllTypes())
                 .filter(type -> type != resolvedClass.type())
                 .map(type -> classResolver.resolve(type))

@@ -44,7 +44,7 @@
             locationURI="popup:org.eclipse.ui.projectConfigure?after=additions">
          <command
                commandId="poussecafe.eclipse.plugin.addRemovePousseCafeNature"
-               label="Disable Pousse-Café nature"
+               label="Remove Pousse-Café nature"
                style="push">
             <visibleWhen
                   checkEnabled="false">
@@ -67,7 +67,7 @@
          </command>
          <command
                commandId="poussecafe.eclipse.plugin.addRemovePousseCafeNature"
-               label="Enable Pousse-Café nature"
+               label="Add Pousse-Café nature"
                style="push">
             <visibleWhen
                   checkEnabled="false">
@@ -108,5 +108,16 @@
       <persistent
             value="true">
       </persistent>
+   </extension>
+   <extension
+         point="org.eclipse.ui.editors">
+      <editor
+            class="poussecafe.eclipse.plugin.editors.EmilEditor"
+            contributorClass="org.eclipse.ui.texteditor.BasicTextEditorActionContributor"
+            extensions="emil"
+            icon="icons/emil.png"
+            id="poussecafe.eclipse.plugin.editors.EmilEditor"
+            name="EMIL Editor">
+      </editor>
    </extension>
 </plugin>

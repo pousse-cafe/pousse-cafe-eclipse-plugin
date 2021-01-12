@@ -120,4 +120,12 @@
             name="EMIL Editor">
       </editor>
    </extension>
+   <extension
+         id="emilProblem"
+         name="EMIL Problem"
+         point="org.eclipse.core.resources.markers">
+      <super
+            type="org.eclipse.core.resources.problemmarker">
+      </super>
+   </extension>
 </plugin>

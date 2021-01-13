@@ -128,4 +128,19 @@
             type="org.eclipse.core.resources.problemmarker">
       </super>
    </extension>
+   <extension
+         point="org.eclipse.ui.views">
+      <category
+            id="poussecafe.eclipse.plugin.views"
+            name="Pousse-Café">
+      </category>
+      <view
+            category="poussecafe.eclipse.plugin.views"
+            class="poussecafe.eclipse.plugin.views.ProcessListView"
+            icon="icons/emil.png"
+            id="poussecafe.eclipse.plugin.views.ProcessListView"
+            inject="true"
+            name="Process List">
+      </view>
+   </extension>
 </plugin>

@@ -40,4 +40,8 @@ public class TypeHierarchy {
     public IType[] getAllTypes() {
         return typeHierarchy.getAllTypes();
     }
+
+    public IType[] getSubTypes(IType type) {
+        return typeHierarchy.getSubtypes(type);
+    }
 }

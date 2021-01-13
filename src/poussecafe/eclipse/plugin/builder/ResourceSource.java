@@ -25,24 +25,28 @@ public class ResourceSource implements Source {
 
     private String id;
 
+    public IFile file() {
+        return file;
+    }
+
+    private IFile file;
+
     public static class Builder {
 
         public ResourceSource build() {
-            requireNonNull(file);
-            source.id = file.getFullPath().toString();
+            requireNonNull(source.file);
+            source.id = source.file.getFullPath().toString();
 
             requireNonNull(project);
-            source.compilationUnit = (ICompilationUnit) JavaCore.create(file, project);
+            source.compilationUnit = (ICompilationUnit) JavaCore.create(source.file, project);
 
             return source;
         }
 
         public Builder file(IFile file) {
-            this.file = file;
+            source.file = file;
             return this;
         }
-
-        private IFile file;
 
         private ResourceSource source = new ResourceSource();
 

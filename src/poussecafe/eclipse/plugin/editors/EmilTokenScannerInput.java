@@ -2,9 +2,9 @@ package poussecafe.eclipse.plugin.editors;
 
 import static java.util.Objects.requireNonNull;
 
-public class EmilScannerInput {
+public class EmilTokenScannerInput {
 
-    public EmilScannerInput(int offset, String documentPart) {
+    public EmilTokenScannerInput(int offset, String documentPart) {
         this.offset = offset;
         requireNonNull(documentPart);
         this.documentPart = documentPart;
@@ -34,7 +34,7 @@ public class EmilScannerInput {
         if(getClass() != obj.getClass()) {
             return false;
         }
-        EmilScannerInput other = (EmilScannerInput) obj;
+        EmilTokenScannerInput other = (EmilTokenScannerInput) obj;
         if(documentPart == null) {
             if(other.documentPart != null) {
                 return false;

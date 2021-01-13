@@ -2,7 +2,7 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: Pousse-Café Eclipse Plugin
 Bundle-SymbolicName: poussecafe.eclipse.plugin;singleton:=true
-Bundle-Version: 0.2.0.202101122207
+Bundle-Version: 0.2.0.202101131525
 Automatic-Module-Name: pousse.cafe.eclipse.plugin
 Bundle-RequiredExecutionEnvironment: JavaSE-11
 Require-Bundle: org.eclipse.ui,
@@ -12,7 +12,9 @@ Require-Bundle: org.eclipse.ui,
  org.eclipse.jface.text,
  org.eclipse.ui.editors,
  pousse-cafe-antlr4-runtime-eclipse-plugin;bundle-version="4.8.0",
- org.slf4j.api
+ org.slf4j.api,
+ org.eclipse.jdt.ui;bundle-version="3.22.0",
+ org.eclipse.ui.ide;bundle-version="3.18.0"
 Import-Package: javax.inject,
  org.eclipse.jdt.core,
  org.eclipse.jdt.core.dom

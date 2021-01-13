@@ -52,7 +52,7 @@ public class EmilTokenScanner implements ITokenScanner {
     @Override
     public void setRange(IDocument document, int offset, int length) {
         try {
-            var newInput = new EmilScannerInput(offset, document.get(offset, length));
+            var newInput = new EmilTokenScannerInput(offset, document.get(offset, length));
             if(!sameInput(newInput)) {
                 logger.debug("Scanning range {}..{}", offset, offset + length - 1);
                 lastInput = newInput;
@@ -60,10 +60,12 @@ public class EmilTokenScanner implements ITokenScanner {
                 rangeOffset = offset;
                 rangeLength = length;
 
-                tokens.clear();
                 editor.clearMarkers();
                 parseDocument(document);
-                computeTokens();
+                if(!parseError) {
+                    tokens.clear();
+                    computeTokens();
+                }
 
                 tokenIterator = tokens.iterator();
             }
@@ -72,11 +74,11 @@ public class EmilTokenScanner implements ITokenScanner {
         }
     }
 
-    private boolean sameInput(EmilScannerInput newInput) {
+    private boolean sameInput(EmilTokenScannerInput newInput) {
         return lastInput != null && lastInput.equals(newInput);
     }
 
-    private EmilScannerInput lastInput;
+    private EmilTokenScannerInput lastInput;
 
     private Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -109,10 +111,13 @@ public class EmilTokenScanner implements ITokenScanner {
                 position = new Position(token.getStartIndex(), token.getStopIndex() - token.getStartIndex() + 1);
             }
             editor.addMarker(msg, line, IMarker.SEVERITY_ERROR, position);
+            parseError = true;
         }
     };
 
     private EmilEditor editor;
+
+    private boolean parseError;
 
     private ProcessContext tree;
 

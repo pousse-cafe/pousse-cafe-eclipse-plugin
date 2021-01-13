@@ -7,11 +7,12 @@ import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
-import org.eclipse.core.resources.IResourceVisitor;
+import org.eclipse.core.resources.IResourceDelta;
 import org.eclipse.core.resources.IncrementalProjectBuilder;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.ILog;
 import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.core.runtime.OperationCanceledException;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.core.JavaCore;
@@ -40,13 +41,35 @@ public class PousseCafeBuilder extends IncrementalProjectBuilder {
 
     @Override
     protected IProject[] build(int kind, Map<String, String> args, IProgressMonitor monitor) throws CoreException {
-        monitor.beginTask("Validating " + getProject().getName(), 3);
+        if(kind == INCREMENTAL_BUILD
+                || kind == AUTO_BUILD) {
+            var delta = getDelta(getProject());
+            if(!isJavaSourceDelta(delta)) {
+                return new IProject[0];
+            }
+        }
+
+        monitor.beginTask("Pousse-Café validation: " + getProject().getName(), 3);
         validateProject(monitor);
         return new IProject[0];
     }
 
+    private boolean isJavaSourceDelta(IResourceDelta delta) {
+        var resource = delta.getResource();
+        if(Resources.isJavaSourceFile(resource)) {
+            return true;
+        } else {
+            for(IResourceDelta child : delta.getAffectedChildren()) {
+                if(isJavaSourceDelta(child)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+
     protected void validateProject(final IProgressMonitor monitor) throws CoreException {
-        monitor.subTask("Walking project...");
+        monitor.subTask("Pousse-Café validation: walking project...");
         var classResolver = new JdtClassResolver(javaProject());
         validator = new Validator(classResolver,
                 Optional.of(new JdtClassPathExplorer(classResolver)));
@@ -58,11 +81,11 @@ public class PousseCafeBuilder extends IncrementalProjectBuilder {
         }
         monitor.worked(1);
 
-        monitor.subTask("Validating...");
+        monitor.subTask("Pousse-Café validation: validating...");
         validator.validate();
         monitor.worked(2);
 
-        monitor.subTask("Refreshing markers...");
+        monitor.subTask("Pousse-Café validation: refreshing markers...");
         refreshMarkers();
         monitor.worked(3);
     }
@@ -78,38 +101,27 @@ public class PousseCafeBuilder extends IncrementalProjectBuilder {
 
     private IJavaProject javaProject;
 
-    class ResourceVisitor implements IResourceVisitor {
+    class ResourceVisitor extends JavaSourceFileVisitor {
 
         ResourceVisitor(IProgressMonitor monitor) {
+            super(javaProject());
             this.monitor = monitor;
         }
 
         private IProgressMonitor monitor;
 
         @Override
-        public boolean visit(IResource resource) {
-            if(isJavaSourceFile(resource)) {
-                IFile file = (IFile) resource;
-                var source = new ResourceSource.Builder()
-                        .project(javaProject())
-                        .file(file)
-                        .build();
-                monitor.subTask("Validation: scanning " + source.id());
-                files.put(source.id(), file);
-                try {
-                    validator.includeSource(source);
-                } catch (Exception e) {
-                    logger.error("Skipping resource " + source.id(), e);
-                }
+        protected void visit(ResourceSource source) {
+            if(monitor.isCanceled()) {
+                throw new OperationCanceledException();
             }
-            return true;
-        }
-
-        private boolean isJavaSourceFile(IResource resource) {
-            var extension = resource.getFileExtension();
-            return resource instanceof IFile
-                    && extension != null
-                    && extension.equals("java");
+            monitor.subTask("Pousse-Café validation: scanning " + source.id());
+            files.put(source.id(), source.file());
+            try {
+                validator.includeSource(source);
+            } catch (Exception e) {
+                logger.error("Skipping resource " + source.id(), e);
+            }
         }
     }
 

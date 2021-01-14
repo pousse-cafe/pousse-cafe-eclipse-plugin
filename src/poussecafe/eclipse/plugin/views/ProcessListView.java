@@ -165,6 +165,7 @@ public class ProcessListView extends ViewPart {
                 try {
                     var emilFileName = emilFileName(processName);
                     var emilFile = createTempFile(emilFileName);
+                    emilFile.refreshLocal(IResource.DEPTH_ZERO, null);
                     var buffer = new ByteArrayInputStream(emil.getBytes());
                     if(emilFile.exists()) {
                         emilFile.setContents(buffer, IResource.FORCE, null);
@@ -191,6 +192,7 @@ public class ProcessListView extends ViewPart {
     private IFile createTempFile(String fileName) throws CoreException {
         var project = currentProject.getProject();
         var tempFolder = project.getFolder(PLUGIN_TEMP_FOLDER);
+        tempFolder.refreshLocal(IResource.DEPTH_INFINITE, null);
         if(!tempFolder.exists()) {
             tempFolder.create(false, true, null);
         }

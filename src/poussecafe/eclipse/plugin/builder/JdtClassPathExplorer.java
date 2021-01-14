@@ -1,6 +1,8 @@
 package poussecafe.eclipse.plugin.builder;
 
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Set;
 import org.eclipse.jdt.core.IType;
 import poussecafe.source.analysis.Name;
@@ -17,12 +19,18 @@ public class JdtClassPathExplorer implements ClassPathExplorer {
     public Set<ResolvedClass> getSubTypesOf(Name superTypeName) {
         var resolvedClass = classResolver.loadClass(superTypeName).map(JdtResolvedClass.class::cast);
         if(resolvedClass.isPresent()) {
-        IType resolvedType = resolvedClass.get().type();
-        var hierarchy = classResolver.typeHierarchies().newTypeHierarchy(resolvedType);
-        return Arrays.stream(hierarchy.getAllTypes())
-                .filter(type -> type != resolvedType)
-                .map(type -> classResolver.resolve(type))
-                .collect(toSet());
+            var subTypes = new HashMap<String, List<IType>>();
+            for(IType resolvedType : resolvedClass.get().types()) {
+                var hierarchy = classResolver.typeHierarchies().newTypeHierarchy(resolvedType);
+                for(IType resolvedTypeSubType : hierarchy.getSubtypes(resolvedType)) {
+                    var resolvedTypeSubTypes = subTypes.computeIfAbsent(resolvedTypeSubType.getFullyQualifiedName(),
+                            name -> new ArrayList<>());
+                    resolvedTypeSubTypes.add(resolvedTypeSubType);
+                }
+            }
+            return subTypes.values().stream()
+                    .map(types -> classResolver.resolve(types))
+                    .collect(toSet());
         } else {
             return emptySet();
         }

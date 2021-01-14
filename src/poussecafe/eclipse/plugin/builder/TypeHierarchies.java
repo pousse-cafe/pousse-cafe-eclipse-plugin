@@ -3,33 +3,34 @@ package poussecafe.eclipse.plugin.builder;
 import java.util.HashMap;
 import java.util.Map;
 import org.eclipse.jdt.core.IType;
+import org.eclipse.jdt.core.ITypeHierarchy;
 import org.eclipse.jdt.core.JavaModelException;
 
 public class TypeHierarchies {
 
-    public TypeHierarchy newSupertypeHierarchy(IType type) {
-        return supertypeHierarchyCache.computeIfAbsent(type.getFullyQualifiedName(), name -> supertypeHierarchy(type));
+    public ITypeHierarchy newSupertypeHierarchy(IType type) {
+        return supertypeHierarchyCache.computeIfAbsent(type, this::supertypeHierarchy);
     }
 
-    private Map<String, TypeHierarchy> supertypeHierarchyCache = new HashMap<>();
+    private Map<IType, ITypeHierarchy> supertypeHierarchyCache = new HashMap<>();
 
-    private TypeHierarchy supertypeHierarchy(IType type) {
+    private ITypeHierarchy supertypeHierarchy(IType type) {
         try {
-            return new TypeHierarchy(type.newSupertypeHierarchy(null));
+            return type.newSupertypeHierarchy(null);
         } catch (JavaModelException e) {
             throw new UnsupportedOperationException(e);
         }
     }
 
-    public TypeHierarchy newTypeHierarchy(IType type) {
-        return typeHierarchyCache.computeIfAbsent(type.getFullyQualifiedName(), name -> typeHierarchy(type));
+    public ITypeHierarchy newTypeHierarchy(IType type) {
+        return typeHierarchyCache.computeIfAbsent(type, this::typeHierarchy);
     }
 
-    private Map<String, TypeHierarchy> typeHierarchyCache = new HashMap<>();
+    private Map<IType, ITypeHierarchy> typeHierarchyCache = new HashMap<>();
 
-    private TypeHierarchy typeHierarchy(IType type) {
+    private ITypeHierarchy typeHierarchy(IType type) {
         try {
-            return new TypeHierarchy(type.newTypeHierarchy(null));
+            return type.newTypeHierarchy(null);
         } catch (JavaModelException e) {
             throw new UnsupportedOperationException(e);
         }

@@ -1,8 +1,13 @@
 package poussecafe.eclipse.plugin.builder;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.jdt.core.IField;
 import org.eclipse.jdt.core.IType;
@@ -12,56 +17,90 @@ import poussecafe.source.analysis.Name;
 import poussecafe.source.analysis.ResolvedClass;
 
 import static java.util.Collections.emptyList;
+import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toSet;
 
 public class JdtResolvedClass implements ResolvedClass {
 
     @Override
     public Optional<ResolvedClass> declaringClass() {
-        if(type.getFullyQualifiedName().charAt('$') != -1) {
-            return resolver.declaringClass(type).map(jdtClass -> (ResolvedClass) jdtClass);
+        if(isInnerClass()) {
+            var declaringClassesTypes = declaringTypes(jdtName);
+            if(declaringClassesTypes.isEmpty()) {
+                return Optional.empty();
+            } else {
+                return Optional.of(resolver.resolve(declaringClassesTypes));
+            }
         } else {
             return Optional.empty();
         }
     }
 
-    private IType type;
+    private boolean isInnerClass() {
+        return jdtName.indexOf(JDT_INNER_CLASS_SEPARATOR) != -1;
+    }
 
-    public IType type() {
-        return type;
+    private static final char JDT_INNER_CLASS_SEPARATOR = '$';
+
+    private List<IType> declaringTypes(String fullyQualifiedName) {
+        try {
+            int declaringClassNameEnd = declaringClassNameEnd(fullyQualifiedName);
+            return resolver.loadType(fullyQualifiedName.substring(0, declaringClassNameEnd));
+        } catch (ClassNotFoundException e) {
+            Platform.getLog(getClass()).error("Unable to get declaring class of " + fullyQualifiedName, e);
+            return emptyList();
+        }
+    }
+
+    private int declaringClassNameEnd(String fullyQualifiedName) {
+        for(int i = fullyQualifiedName.length() - 1; i >= 0; --i) {
+            if(fullyQualifiedName.charAt(i) == JDT_INNER_CLASS_SEPARATOR) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private Set<IType> types = new HashSet<>();
+
+    public Set<IType> types() {
+        return types;
     }
 
     @Override
     public List<ResolvedClass> innerClasses() {
-        try {
-            return Arrays.stream(type.getTypes())
-                    .filter(this::isClass)
-                    .map(this::newResolvedClass)
-                    .collect(toList());
-        } catch (JavaModelException e) {
-            logError("Unable to extract inner classes", e);
-            return emptyList();
+        var innerTypes = new HashMap<String, List<IType>>();
+        for(IType type : types) {
+            try {
+                var typeInnerTypes = Arrays.stream(type.getTypes())
+                        .filter(this::isResolvableType)
+                        .collect(toList());
+                for(IType innerType : typeInnerTypes) {
+                    var innerTypeTypes = innerTypes.computeIfAbsent(innerType.getFullyQualifiedName(),
+                            name -> new ArrayList<>());
+                    innerTypeTypes.add(innerType);
+                }
+            } catch (JavaModelException e) {
+                logError("Unable to extract inner classes", e);
+            }
         }
+        return innerTypes.values().stream()
+                .map(innerTypesClasses -> resolver.resolve(innerTypesClasses))
+                .collect(toList());
     }
 
     private void logError(String message, Exception e) {
         Platform.getLog(getClass()).error(message, e);
     }
 
-    private boolean isClass(IType candidate) {
+    private boolean isResolvableType(IType candidate) {
         try {
-            return candidate.isClass() || candidate.isInterface();
+            return candidate.isClass() || candidate.isInterface() || candidate.isEnum();
         } catch (JavaModelException e) {
             logError("Unable to extract inner classes", e);
             return false;
         }
-    }
-
-    private JdtResolvedClass newResolvedClass(IType type) {
-        return new JdtResolvedClass.Builder()
-                .resolver(resolver)
-                .type(type)
-                .build();
     }
 
     @Override
@@ -70,19 +109,30 @@ public class JdtResolvedClass implements ResolvedClass {
         return instanceOf(consideredType);
     }
 
-    private boolean instanceOf(JdtResolvedClass consideredType) {
-        if(consideredType.name().equals(name())) {
+    private boolean instanceOf(JdtResolvedClass superclass) {
+        if(superclass.name().equals(name())) {
             return true;
         } else {
-            var hierarchy = resolver.typeHierarchies().newSupertypeHierarchy(type);
-            return hierarchy.contains(consideredType.type);
+            for(IType type : types) {
+                var hierarchy = resolver.typeHierarchies().newSupertypeHierarchy(type);
+                for(IType superclassType : superclass.types()) {
+                    if(hierarchy.contains(superclassType)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
         }
     }
 
     @Override
     public Name name() {
-        return new Name(type.getFullyQualifiedName('.'));
+        return javaName;
     }
+
+    private String jdtName;
+
+    private Name javaName;
 
     @Override
     public ClassResolver resolver() {
@@ -93,7 +143,17 @@ public class JdtResolvedClass implements ResolvedClass {
 
     @Override
     public Optional<Object> staticFieldValue(String constantName) {
-        return Optional.ofNullable(getConstant(type.getField(constantName)));
+        Set<Object> values = types.stream()
+                .map(type -> type.getField(constantName))
+                .map(this::getConstant)
+                .collect(toSet());
+        if(values.size() > 1) {
+            throw new IllegalStateException("Conflicting values for constant " + constantName);
+        } else if(values.isEmpty()) {
+            return Optional.empty();
+        } else {
+            return Optional.of(values.iterator().next());
+        }
     }
 
     private Object getConstant(IField field) {
@@ -107,6 +167,27 @@ public class JdtResolvedClass implements ResolvedClass {
     public static class Builder {
 
         public JdtResolvedClass build() {
+            requireNonNull(resolvedClass.resolver);
+            if(resolvedClass.types.isEmpty()) {
+                throw new IllegalStateException("Resolved class must have at least one linked type");
+            }
+
+            Set<String> javaNames = resolvedClass.types.stream()
+                    .map(type -> type.getFullyQualifiedName('.'))
+                    .collect(toSet());
+            if(javaNames.size() > 1) {
+                throw new IllegalStateException("Conflicting java names");
+            }
+            resolvedClass.javaName = new Name(javaNames.iterator().next());
+
+            Set<String> jdtNames = resolvedClass.types.stream()
+                    .map(IType::getFullyQualifiedName)
+                    .collect(toSet());
+            if(jdtNames.size() > 1) {
+                throw new IllegalStateException("Conflicting JDT names");
+            }
+            resolvedClass.jdtName = jdtNames.iterator().next();
+
             return resolvedClass;
         }
 
@@ -117,8 +198,9 @@ public class JdtResolvedClass implements ResolvedClass {
             return this;
         }
 
-        public Builder type(IType type) {
-            resolvedClass.type = type;
+        public Builder types(Collection<IType> types) {
+            resolvedClass.types.clear();
+            resolvedClass.types.addAll(types);
             return this;
         }
     }

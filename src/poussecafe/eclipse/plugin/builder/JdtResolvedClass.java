@@ -113,10 +113,10 @@ public class JdtResolvedClass implements ResolvedClass {
         if(superclass.name().equals(name())) {
             return true;
         } else {
-            for(IType type : types) {
-                var hierarchy = resolver.typeHierarchies().newSupertypeHierarchy(type);
-                for(IType superclassType : superclass.types()) {
-                    if(hierarchy.contains(superclassType)) {
+            for(IType superclassType : superclass.types()) {
+                var supertypeHierarchy = resolver.typeHierarchies().newTypeHierarchy(superclassType);
+                for(IType type : types) {
+                    if(supertypeHierarchy.contains(type)) {
                         return true;
                     }
                 }

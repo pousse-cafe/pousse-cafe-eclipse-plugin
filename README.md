@@ -1,7 +1,18 @@
 # Pousse-Café Eclipse Plug-in
 
-This Eclipse plug-in provides source code validation. Pousse-Café nature must be added to a project in order to enable
-the plug-in features.
+This Eclipse plug-in provides:
+
+- source code validation,
+- an EMIL editor,
+- a Process List view.
+
+Pousse-Café nature must be added to a project in order to enable the plug-in features.
+
+The EMIL editor is associate by default with files having `emil` extension.
+
+The process list view can be opened from the main menu:
+- go to "Window > Show View > Other...",
+- the go to "Pousse-Café" section and click on "Process List".
 
 ## Installation
 
@@ -14,7 +25,7 @@ the plug-in features.
 ## Add Pousse-Café nature to a project
 
 1. Right-click on the project in the package explorer view
-2. Click on "Configure > Enable Pousse-Café nature"
+2. Click on "Configure > Add Pousse-Café nature"
 
 ## Development
 

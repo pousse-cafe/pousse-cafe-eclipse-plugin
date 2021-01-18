@@ -14,6 +14,7 @@ import org.eclipse.core.runtime.Status;
 import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.ui.IPackagesViewPart;
 import org.eclipse.jface.action.Action;
+import org.eclipse.jface.action.IAction;
 import org.eclipse.jface.viewers.ArrayContentProvider;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.jface.viewers.ITableLabelProvider;
@@ -26,6 +27,7 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.ui.ISelectionListener;
 import org.eclipse.ui.ISharedImages;
 import org.eclipse.ui.IWorkbench;
+import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.part.FileEditorInput;
 import org.eclipse.ui.part.ViewPart;
 import org.eclipse.ui.progress.UIJob;
@@ -48,20 +50,25 @@ public class ProcessListView extends ViewPart {
     @Inject
     IWorkbench workbench;
 
-    private TableViewer viewer;
-
     @Override
     public void createPartControl(Composite parent) {
         viewer = new TableViewer(parent, SWT.MULTI | SWT.H_SCROLL | SWT.V_SCROLL);
-
         viewer.setContentProvider(ArrayContentProvider.getInstance());
         viewer.setInput(new String[] {});
         viewer.setLabelProvider(new ViewLabelProvider());
+
         getSite().setSelectionProvider(viewer);
+        getSite().getWorkbenchWindow().getSelectionService().addSelectionListener(selectionListener);
 
         registerDoubleClickAction();
+        fillActionBar();
+    }
 
-        getSite().getWorkbenchWindow().getSelectionService().addSelectionListener(selectionListener);
+    private TableViewer viewer;
+
+    @Override
+    public void setFocus() {
+        viewer.getControl().setFocus();
     }
 
     @Override
@@ -95,35 +102,36 @@ public class ProcessListView extends ViewPart {
             var packageSelection = (TreeSelection) selection;
             if(packageSelection.getFirstElement() instanceof IJavaProject) {
                 var javaProject = (IJavaProject) packageSelection.getFirstElement();
-                try {
-                    refreshProcessList(javaProject);
-                } catch (CoreException e) {
-                    Platform.getLog(getClass()).error("Unable to refresh process list", e);
-                }
+                refreshProcessList(javaProject, false);
             }
         }
     };
 
-    private void refreshProcessList(IJavaProject javaProject) throws CoreException {
-        if(javaProject.equals(currentProject)) {
-            return;
-        }
-        logger.debug("Trying to refresh process list...");
-        currentProject = javaProject;
-        IProject project = currentProject.getProject();
-        if(project.hasNature(PousseCafeNature.NATURE_ID)) {
-            var job = new UIJob("Refresh process list") {
-                @Override
-                public IStatus runInUIThread(IProgressMonitor monitor) {
-                    setViewerInput(currentProject);
-                    return Status.OK_STATUS;
-                }
-            };
-            job.schedule();
+    private void refreshProcessList(IJavaProject javaProject, boolean forceRefresh) {
+        try {
+            if(!forceRefresh && javaProject.equals(currentProject)) {
+                return;
+            }
+            logger.debug("Trying to refresh process list...");
+            currentProject = javaProject;
+            IProject project = currentProject.getProject();
+            if(project.hasNature(PousseCafeNature.NATURE_ID)) {
+                viewer.setInput(new String[] {});
+                var job = new UIJob("Refresh processList") {
+                    @Override
+                    public IStatus runInUIThread(IProgressMonitor monitor) {
+                        resetViewerInput(currentProject);
+                        return Status.OK_STATUS;
+                    }
+                };
+                job.schedule();
+            }
+        } catch (CoreException e) {
+            Platform.getLog(getClass()).error("Unable to refresh process list", e);
         }
     }
 
-    private void setViewerInput(IJavaProject javaProject) {
+    private void resetViewerInput(IJavaProject javaProject) {
         IProject project = currentProject.getProject();
         logger.debug("Extract process list from project {}", project.getName());
         var classResolver = new JdtClassResolver(javaProject);
@@ -201,8 +209,25 @@ public class ProcessListView extends ViewPart {
 
     private static final String PLUGIN_TEMP_FOLDER = ".pousse-cafe";
 
-    @Override
-    public void setFocus() {
-        viewer.getControl().setFocus();
+    private void fillActionBar() {
+        var toolBar = getViewSite().getActionBars().getToolBarManager();
+        var refreshListAction = buildRefreshListAction();
+        toolBar.add(refreshListAction);
+    }
+
+    private IAction buildRefreshListAction() {
+        var action = new Action() {
+            @Override
+            public void run() {
+                if(currentProject != null) {
+                    refreshProcessList(currentProject, true);
+                }
+            }
+        };
+        action.setText("Reload");
+        action.setToolTipText("Reload process list");
+        action.setImageDescriptor(PlatformUI.getWorkbench().getSharedImages()
+                .getImageDescriptor(ISharedImages.IMG_ELCL_SYNCED));
+        return action;
     }
 }

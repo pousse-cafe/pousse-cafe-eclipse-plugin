@@ -45,15 +45,16 @@ The setup phase is a bit tedious but needs to be processed only once.
 
 The following projects must be cloned into the workspace:
 
+- [pousse-cafe-antlr4-runtime-eclipse-plugin](https://github.com/pousse-cafe/pousse-cafe-antlr4-runtime-eclipse-plugin)
 - [pousse-cafe-base-eclipse-plugin](https://github.com/pousse-cafe/pousse-cafe-base-eclipse-plugin)
 - [pousse-cafe-core-eclipse-plugin](https://github.com/pousse-cafe/pousse-cafe-core-eclipse-plugin)
 - [pousse-cafe-source-eclipse-plugin](https://github.com/pousse-cafe/pousse-cafe-source-eclipse-plugin)
 
-Each project must contain the "original" Pousse-Café JAR file:
+Each project must contain the "original" JAR file:
 
 - JAR files are "gitignored", they have to be copied manually in each dependency project.
 - The version and name of the JAR file are mentioned in `MANIFEST.MF` and `build.properties` files.
-- It is recommended to use the EDP view of the manifest when changing the version of the JAR file.
+- It is recommended to use the PDE view of the manifest when changing the version of the JAR file.
 - The version of above dependencies follow the major, micro and minor of the original project.
 - The version qualifier is the date-time of latest change (i.e. yyyyMMddhhmm).
 
@@ -86,9 +87,6 @@ plug-in manifest.
 
 ### Release a new version of the plug-in
 
-1. In `pousse-cafe-eclipse-feature` project, update the plug-ins versions (use "Versions > Copy versions from ..." command) and change the feature's version (Semantic Versioning rules apply, the qualifier is the date-time of latest
-change with format `yyyyMMddhhmm`).
-2. In `pousse-cafe-eclipse-site` project
-    - add the new feature to the main category
-    - Re-build site ("Build All" command)
+1. In `pousse-cafe-eclipse-site` project, re-build site ("Build All" command)
+2. Check that expected plug-in JARs have been copied to the `plugins` folder
 3. Copy local content to remote site.

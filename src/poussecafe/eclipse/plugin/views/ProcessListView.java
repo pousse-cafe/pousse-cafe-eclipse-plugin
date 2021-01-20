@@ -11,6 +11,7 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.core.runtime.Status;
+import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.ui.IPackagesViewPart;
 import org.eclipse.jface.action.Action;
@@ -108,46 +109,48 @@ public class ProcessListView extends ViewPart {
     };
 
     private void refreshProcessList(IJavaProject javaProject, boolean forceRefresh) {
-        try {
+        logger.debug("Trying to refresh process list...");
+        IProject project = javaProject.getProject();
+        if(isPousseCafeProject(project)) {
             if(!forceRefresh && javaProject.equals(currentProject)) {
                 return;
             }
-            logger.debug("Trying to refresh process list...");
+
             currentProject = javaProject;
-            IProject project = currentProject.getProject();
-            if(project.hasNature(PousseCafeNature.NATURE_ID)) {
-                viewer.setInput(new String[] {});
-                var job = new UIJob("Refresh processList") {
-                    @Override
-                    public IStatus runInUIThread(IProgressMonitor monitor) {
-                        resetViewerInput(currentProject);
-                        return Status.OK_STATUS;
-                    }
-                };
-                job.schedule();
-            }
-        } catch (CoreException e) {
-            Platform.getLog(getClass()).error("Unable to refresh process list", e);
+            var job = Job.create("Compute process list of project " + project.getName(), monitor -> {
+                var classResolver = new JdtClassResolver(currentProject);
+                var modelBuilder = new SourceModelBuilder(classResolver);
+                try {
+                    project.accept(new ModelBuildingResourceVisitor(currentProject, modelBuilder));
+                    sourceModel = modelBuilder.build();
+
+                    String[] processNames = sourceModel.processes().stream()
+                            .map(ProcessModel::simpleName)
+                            .sorted()
+                            .toArray(String[]::new);
+
+                    var uiJob = new UIJob("Refresh process list") {
+                        @Override
+                        public IStatus runInUIThread(IProgressMonitor monitor) {
+                            viewer.setInput(processNames);
+                            return Status.OK_STATUS;
+                        }
+                    };
+                    uiJob.schedule();
+                } catch (CoreException e) {
+                    Platform.getLog(getClass()).error("Unable to visit project " + project.getName(), e);
+                }
+            });
+            job.schedule();
         }
     }
 
-    private void resetViewerInput(IJavaProject javaProject) {
-        IProject project = currentProject.getProject();
-        logger.debug("Extract process list from project {}", project.getName());
-        var classResolver = new JdtClassResolver(javaProject);
-
-        var modelBuilder = new SourceModelBuilder(classResolver);
+    private boolean isPousseCafeProject(IProject project) {
         try {
-            project.accept(new ModelBuildingResourceVisitor(javaProject, modelBuilder));
-            sourceModel = modelBuilder.build();
-
-            var processNames = sourceModel.processes().stream()
-                    .map(ProcessModel::simpleName)
-                    .sorted()
-                    .toArray(String[]::new);
-            viewer.setInput(processNames);
+            return project.hasNature(PousseCafeNature.NATURE_ID);
         } catch (CoreException e) {
-            Platform.getLog(getClass()).error("Unable to visit project " + project.getName(), e);
+            Platform.getLog(getClass()).error("Unable to detect project nature " + project.getName(), e);
+            return false;
         }
     }
 

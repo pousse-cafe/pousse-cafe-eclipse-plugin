@@ -8,10 +8,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import org.eclipse.core.resources.IFile;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.jdt.core.IField;
 import org.eclipse.jdt.core.IType;
+import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.core.JavaModelException;
+import poussecafe.source.Source;
 import poussecafe.source.analysis.ClassResolver;
 import poussecafe.source.analysis.Name;
 import poussecafe.source.analysis.ResolvedClass;
@@ -161,6 +164,24 @@ public class JdtResolvedClass implements ResolvedClass {
             return field.getConstant();
         } catch (JavaModelException e) {
             return null;
+        }
+    }
+
+    @Override
+    public Optional<Source> source() {
+        Optional<IFile> file = types.stream()
+                .filter(type -> type.getResource() != null)
+                .map(IType::getResource)
+                .filter(resource -> resource instanceof IFile)
+                .map(IFile.class::cast)
+                .findFirst();
+        if(file.isPresent()) {
+            return Optional.of(new ResourceSource.Builder()
+                    .project(JavaCore.create(file.get().getProject()))
+                    .file(file.get())
+                    .build());
+        } else {
+            return Optional.empty();
         }
     }
 

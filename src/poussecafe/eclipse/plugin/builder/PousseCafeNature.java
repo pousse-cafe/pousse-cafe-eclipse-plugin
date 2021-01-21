@@ -5,13 +5,25 @@ import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IProjectDescription;
 import org.eclipse.core.resources.IProjectNature;
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.Platform;
+import org.eclipse.jdt.core.IJavaProject;
 
 public class PousseCafeNature implements IProjectNature {
 
-    /**
-     * ID of this project nature
-     */
+    public static boolean isPousseCafeProject(IProject project) {
+        try {
+            return project.hasNature(PousseCafeNature.NATURE_ID);
+        } catch (CoreException e) {
+            Platform.getLog(PousseCafeNature.class).error("Unable to detect project nature " + project.getName(), e);
+            return false;
+        }
+    }
+
     public static final String NATURE_ID = "poussecafe.eclipse.plugin.pousseCafeNature";
+
+    public static boolean isPousseCafeProject(IJavaProject project) {
+        return isPousseCafeProject(project.getProject());
+    }
 
     private IProject project;
 

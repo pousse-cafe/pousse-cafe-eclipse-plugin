@@ -18,6 +18,10 @@ public class ResourceSource implements Source {
 
     private ICompilationUnit compilationUnit;
 
+    public ICompilationUnit compilationUnit() {
+        return compilationUnit;
+    }
+
     @Override
     public String id() {
         return id;

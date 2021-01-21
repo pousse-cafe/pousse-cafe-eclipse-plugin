@@ -3,27 +3,14 @@ package poussecafe.eclipse.plugin.editors;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import org.antlr.v4.runtime.ANTLRErrorListener;
-import org.antlr.v4.runtime.BaseErrorListener;
-import org.antlr.v4.runtime.CharStreams;
-import org.antlr.v4.runtime.CommonTokenStream;
-import org.antlr.v4.runtime.ConsoleErrorListener;
-import org.antlr.v4.runtime.RecognitionException;
-import org.antlr.v4.runtime.Recognizer;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.TerminalNode;
-import org.eclipse.core.resources.IMarker;
-import org.eclipse.core.runtime.Platform;
-import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.IDocument;
-import org.eclipse.jface.text.Position;
 import org.eclipse.jface.text.TextAttribute;
 import org.eclipse.jface.text.rules.IToken;
 import org.eclipse.jface.text.rules.ITokenScanner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import poussecafe.source.emil.parser.EmilLexer;
-import poussecafe.source.emil.parser.EmilParser;
 import poussecafe.source.emil.parser.EmilParser.AggregateRootConsumptionContext;
 import poussecafe.source.emil.parser.EmilParser.CommandConsumptionContext;
 import poussecafe.source.emil.parser.EmilParser.ConsumptionContext;
@@ -51,34 +38,20 @@ public class EmilTokenScanner implements ITokenScanner {
 
     @Override
     public void setRange(IDocument document, int offset, int length) {
-        try {
-            var newInput = new EmilTokenScannerInput(offset, document.get(offset, length));
-            if(!sameInput(newInput)) {
-                logger.debug("Scanning range {}..{}", offset, offset + length - 1);
-                lastInput = newInput;
+        logger.debug("Scanning range {}..{}", offset, offset + length - 1);
+        rangeOffset = offset;
+        rangeLength = length;
 
-                rangeOffset = offset;
-                rangeLength = length;
-
-                editor.clearMarkers();
-                parseDocument(document);
-                if(!parseError) {
-                    tokens.clear();
-                    computeTokens();
-                }
-
-                tokenIterator = tokens.iterator();
-            }
-        } catch (BadLocationException e) {
-            Platform.getLog(getClass()).error("Unable to scan range", e);
+        editor.clearMarkers();
+        var parser = new EmilStringParser(document.get());
+        if(parser.errors().isEmpty()) {
+            tokens.clear();
+            tree = parser.tree();
+            computeTokens();
         }
-    }
 
-    private boolean sameInput(EmilTokenScannerInput newInput) {
-        return lastInput != null && lastInput.equals(newInput);
+        tokenIterator = tokens.iterator();
     }
-
-    private EmilTokenScannerInput lastInput;
 
     private Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -88,36 +61,7 @@ public class EmilTokenScanner implements ITokenScanner {
 
     private List<EmilToken> tokens = new ArrayList<>();
 
-    private void parseDocument(IDocument document) {
-        var stream = CharStreams.fromString(document.get());
-        var lexer = new EmilLexer(stream);
-        lexer.removeErrorListener(ConsoleErrorListener.INSTANCE);
-        lexer.addErrorListener(errorListener);
-
-        CommonTokenStream tokenStream = new CommonTokenStream(lexer);
-        EmilParser parser = new EmilParser(tokenStream);
-        parser.removeErrorListener(ConsoleErrorListener.INSTANCE);
-        parser.addErrorListener(errorListener);
-
-        tree = parser.process();
-    }
-
-    private ANTLRErrorListener errorListener = new BaseErrorListener() {
-        @Override
-        public void syntaxError(Recognizer<?, ?> recognizer, Object offendingSymbol, int line, int charPositionInLine, String msg, RecognitionException e) {
-            Position position = null;
-            if(offendingSymbol instanceof Token) {
-                var token = (Token) offendingSymbol;
-                position = new Position(token.getStartIndex(), token.getStopIndex() - token.getStartIndex() + 1);
-            }
-            editor.addMarker(msg, line, IMarker.SEVERITY_ERROR, position);
-            parseError = true;
-        }
-    };
-
     private EmilEditor editor;
-
-    private boolean parseError;
 
     private ProcessContext tree;
 

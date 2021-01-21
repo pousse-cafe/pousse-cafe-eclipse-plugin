@@ -1,19 +1,13 @@
 package poussecafe.eclipse.plugin.builder;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.eclipse.core.runtime.Platform;
 import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.core.IType;
 import org.eclipse.jdt.core.JavaModelException;
-import org.eclipse.jdt.core.search.IJavaSearchConstants;
-import org.eclipse.jdt.core.search.SearchEngine;
-import org.eclipse.jdt.core.search.SearchPattern;
-import org.eclipse.jdt.core.search.TypeNameMatch;
-import org.eclipse.jdt.core.search.TypeNameMatchRequestor;
+import poussecafe.eclipse.plugin.core.JavaSearchEngine;
 import poussecafe.source.analysis.ClassResolver;
 import poussecafe.source.analysis.Name;
 
@@ -52,31 +46,7 @@ public class JdtClassResolver extends ClassResolver {
     private Map<Name, List<IType>> searchResults = new HashMap<>();
 
     private List<IType> doSearchType(Name typeName) {
-        var requestor = new SearchRequestor();
-        try {
-            searchEngine.searchAllTypeNames(
-                    typeName.qualifier().toCharArray(),
-                    SearchPattern.R_EXACT_MATCH,
-                    typeName.simple().toCharArray(),
-                    SearchPattern.R_EXACT_MATCH,
-                    IJavaSearchConstants.CLASS_AND_INTERFACE,
-                    SearchEngine.createWorkspaceScope(),
-                    requestor,
-                    IJavaSearchConstants.FORCE_IMMEDIATE_SEARCH,
-                    null);
-        } catch (JavaModelException e) {
-            Platform.getLog(getClass()).error("Unable to search for types", e);
-        }
-        return requestor.foundTypes;
-    }
-
-    private static class SearchRequestor extends TypeNameMatchRequestor {
-        @Override
-        public void acceptTypeNameMatch(TypeNameMatch match) {
-            foundTypes.add(match.getType());
-        }
-
-        private List<IType> foundTypes = new ArrayList<>();
+        return searchEngine.searchType(typeName);
     }
 
     public JdtResolvedClass resolve(Collection<IType> types) {
@@ -92,7 +62,7 @@ public class JdtClassResolver extends ClassResolver {
         requireNonNull(project);
         this.project = project;
 
-        searchEngine = new SearchEngine();
+        searchEngine = new JavaSearchEngine();
     }
 
     private TypeHierarchies typeHierarchies = new TypeHierarchies();
@@ -101,5 +71,5 @@ public class JdtClassResolver extends ClassResolver {
         return typeHierarchies;
     }
 
-    private SearchEngine searchEngine;
+    private JavaSearchEngine searchEngine;
 }

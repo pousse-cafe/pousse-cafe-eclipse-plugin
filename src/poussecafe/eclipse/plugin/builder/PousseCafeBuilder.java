@@ -16,6 +16,8 @@ import org.eclipse.core.runtime.OperationCanceledException;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.core.JavaCore;
+import poussecafe.eclipse.plugin.core.PousseCafeCore;
+import poussecafe.source.SourceModelBuilder;
 import poussecafe.source.validation.ValidationMessage;
 import poussecafe.source.validation.ValidationMessageType;
 import poussecafe.source.validation.Validator;
@@ -49,8 +51,24 @@ public class PousseCafeBuilder extends IncrementalProjectBuilder {
             }
         }
 
-        monitor.beginTask("Pousse-Café validation: " + getProject().getName(), 3);
-        validateProject(monitor);
+        monitor.beginTask("Pousse-Café build: " + getProject().getName(), 4);
+
+        monitor.subTask("Pousse-Café build: walking project...");
+        buildModels(monitor);
+        monitor.worked(1);
+
+        monitor.subTask("Pousse-Café build: validating...");
+        validateProject();
+        monitor.worked(2);
+
+        monitor.subTask("Pousse-Café build: refreshing model...");
+        refreshPousseCafeProject();
+        monitor.worked(3);
+
+        monitor.subTask("Pousse-Café build: refreshing markers...");
+        refreshMarkers();
+        monitor.worked(4);
+
         return new IProject[0];
     }
 
@@ -68,29 +86,19 @@ public class PousseCafeBuilder extends IncrementalProjectBuilder {
         }
     }
 
-    protected void validateProject(final IProgressMonitor monitor) throws CoreException {
-        monitor.subTask("Pousse-Café validation: walking project...");
+    private void buildModels(IProgressMonitor monitor) {
         var classResolver = new JdtClassResolver(javaProject());
         validator = new Validator(classResolver,
                 Optional.of(new JdtClassPathExplorer(classResolver)));
+        modelBuilder = new SourceModelBuilder(classResolver);
+
         files.clear();
         try {
             getProject().accept(new ResourceVisitor(monitor));
         } catch (CoreException e) {
             logger.error("Unable to validate project", e);
         }
-        monitor.worked(1);
-
-        monitor.subTask("Pousse-Café validation: validating...");
-        validator.validate();
-        monitor.worked(2);
-
-        monitor.subTask("Pousse-Café validation: refreshing markers...");
-        refreshMarkers();
-        monitor.worked(3);
     }
-
-    private Validator validator;
 
     private IJavaProject javaProject() {
         if(javaProject == null) {
@@ -101,7 +109,13 @@ public class PousseCafeBuilder extends IncrementalProjectBuilder {
 
     private IJavaProject javaProject;
 
-    class ResourceVisitor extends JavaSourceFileVisitor {
+    private Validator validator;
+
+    private SourceModelBuilder modelBuilder;
+
+    private Map<String, IFile> files = new HashMap<>();
+
+    private class ResourceVisitor extends JavaSourceFileVisitor {
 
         ResourceVisitor(IProgressMonitor monitor) {
             super(javaProject());
@@ -115,17 +129,29 @@ public class PousseCafeBuilder extends IncrementalProjectBuilder {
             if(monitor.isCanceled()) {
                 throw new OperationCanceledException();
             }
-            monitor.subTask("Pousse-Café validation: scanning " + source.id());
+            monitor.subTask("Pousse-Café build: scanning " + source.id());
             files.put(source.id(), source.file());
             try {
                 validator.includeSource(source);
             } catch (Exception e) {
-                logger.error("Skipping resource " + source.id(), e);
+                logger.error("Validator skips resource " + source.id(), e);
+            }
+            try {
+                modelBuilder.includeSource(source);
+            } catch (Exception e) {
+                logger.error("Model builder skips resource " + source.id(), e);
             }
         }
     }
 
-    private Map<String, IFile> files = new HashMap<>();
+    private void validateProject() {
+        validator.validate();
+    }
+
+    private void refreshPousseCafeProject() {
+        var pousseCafeProject = PousseCafeCore.getProject(javaProject);
+        pousseCafeProject.refresh(modelBuilder.build());
+    }
 
     private void refreshMarkers() {
         deleteProjectPousseCafeMarkers();

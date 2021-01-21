@@ -4,13 +4,18 @@ import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jface.text.Position;
+import org.eclipse.ui.IEditorInput;
 import org.eclipse.ui.editors.text.FileDocumentProvider;
 import org.eclipse.ui.editors.text.TextEditor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import poussecafe.eclipse.plugin.core.PousseCafeCore;
+import poussecafe.eclipse.plugin.core.PousseCafeProject;
+import poussecafe.eclipse.plugin.core.PousseCafeProject.ChangeListener;
 
-public class EmilEditor extends TextEditor {
+public class EmilEditor extends TextEditor implements ChangeListener {
 
     public EmilEditor() {
         setSourceViewerConfiguration(new EmilConfiguration(this));
@@ -32,6 +37,10 @@ public class EmilEditor extends TextEditor {
         if(style != null) {
             style.dispose();
             style = null;
+        }
+        if(project != null) {
+            project.removeListener(this);
+            project = null;
         }
         super.dispose();
     }
@@ -63,5 +72,26 @@ public class EmilEditor extends TextEditor {
         } catch (CoreException e) {
             logger.error("Unable to add marker", e);
         }
+    }
+
+    @Override
+    protected void doSetInput(IEditorInput input) throws CoreException {
+        super.doSetInput(input);
+
+        IEditorInput editorInput = getEditorInput();
+        var file = editorInput.getAdapter(IFile.class);
+        project = PousseCafeCore.getProject(JavaCore.create(file.getProject()));
+        project.addListener(this);
+    }
+
+    private PousseCafeProject project;
+
+    @Override
+    public void consume(PousseCafeProject project) {
+        // Nothing to do for now
+    }
+
+    public PousseCafeProject getPousseCafeProject() {
+        return project;
     }
 }

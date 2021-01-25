@@ -6,12 +6,14 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.TerminalNode;
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.IMember;
 import org.eclipse.jdt.core.IMethod;
+import org.eclipse.jdt.core.IType;
 import org.eclipse.jdt.core.Signature;
 import org.eclipse.jdt.ui.actions.OpenAction;
 import org.eclipse.jface.text.IDocument;
@@ -42,9 +44,11 @@ import poussecafe.source.emil.parser.EmilParser.ProcessContext;
 import poussecafe.source.emil.parser.EmilParser.QualifiedNameContext;
 import poussecafe.source.emil.parser.EmilParser.RepositoryConsumptionContext;
 import poussecafe.source.emil.parser.EmilParser.SingleMessageConsumptionContext;
+import poussecafe.source.generation.NamingConventions;
 import poussecafe.source.model.Aggregate;
 import poussecafe.source.model.Command;
 import poussecafe.source.model.DomainEvent;
+import poussecafe.source.model.MessageListenerContainerType;
 import poussecafe.source.model.Model;
 import poussecafe.source.model.ProcessModel;
 
@@ -186,7 +190,8 @@ public class EmilHyperlinkDetector extends AbstractHyperlinkDetector {
                     factoryConsumption.aggregateRoot().qualifiedRootName,
                     factoryConsumption.aggregateRoot().simpleRootName,
                     hookNameToken(factoryConsumption, "onAdd"),
-                    null);
+                    null,
+                    MessageListenerContainerType.ROOT);
             tryAddLinks(factoryConsumption.eventProductions());
         }
     }
@@ -208,14 +213,18 @@ public class EmilHyperlinkDetector extends AbstractHyperlinkDetector {
         if(factoryListener.qualifiedName() != null) {
             tryAddLinksOfAggregateContainer(factoryListener.qualifiedName());
         } else {
-            // TODO standalone factory
+            tryAddLinkStandaloneComponent(
+                    factoryListener.simpleFactoryName,
+                    NamingConventions::aggregateNameFromSimpleFactoryName,
+                    aggregate -> aggregate.map(Aggregate::standaloneFactorySource));
         }
 
         tryAddLinkListener(
                 factoryListener.qualifiedFactoryName,
                 factoryListener.simpleFactoryName,
                 factoryListener.listenerName,
-                messageTypeName);
+                messageTypeName,
+                MessageListenerContainerType.FACTORY);
     }
 
     private void tryAddLinksOfAggregateContainer(QualifiedNameContext qualifiedName) {
@@ -228,15 +237,28 @@ public class EmilHyperlinkDetector extends AbstractHyperlinkDetector {
         tryAddLink(typeNameNode.getSymbol(), source, unit -> Optional.of(unit.getType(aggregateName).getType(typeNameNode.getText())));
     }
 
+    private void tryAddLinkStandaloneComponent(
+            Token simpleName,
+            UnaryOperator<String> aggregateNameProvider,
+            Function<Optional<Aggregate>, Optional<Optional<Source>>> sourceProvider) {
+        var className = simpleName.getText();
+        var aggregateName = aggregateNameProvider.apply(className);
+        var aggregate = modelOrElseThrow().aggregate(aggregateName);
+        tryAddLink(simpleName, sourceProvider.apply(aggregate),
+                unit -> Optional.of(unit.getType(className)));
+    }
+
     private void tryAddLinkListener(
             QualifiedNameContext containerQualifiedName,
             Token containerSimpleName,
             Token listenerName,
-            String messageTypeName) {
+            String messageTypeName,
+            MessageListenerContainerType containerType) {
 
         var listenerContainer = listenerContainer(
                 containerQualifiedName,
-                containerSimpleName);
+                containerSimpleName,
+                containerType);
         var listenerExtractor = listenerExtractor(
                 containerQualifiedName,
                 containerSimpleName,
@@ -247,12 +269,30 @@ public class EmilHyperlinkDetector extends AbstractHyperlinkDetector {
 
     private Optional<Optional<Source>> listenerContainer(
             QualifiedNameContext qualifiedName,
-            Token simpleName) {
+            Token simpleName,
+            MessageListenerContainerType containerType) {
         if(qualifiedName != null) {
             return aggregateContainer(qualifiedName);
         } else {
-            // TODO standalone container
-            return Optional.empty();
+            try {
+                if(containerType == MessageListenerContainerType.ROOT) {
+                    var aggregateName = NamingConventions.aggregateNameFromSimpleRootName(simpleName.getText());
+                    var aggregate = modelOrElseThrow().aggregate(aggregateName);
+                    return aggregate.map(Aggregate::standaloneRootSource);
+                } else if(containerType == MessageListenerContainerType.FACTORY) {
+                    var aggregateName = NamingConventions.aggregateNameFromSimpleFactoryName(simpleName.getText());
+                    var aggregate = modelOrElseThrow().aggregate(aggregateName);
+                    return aggregate.map(Aggregate::standaloneFactorySource);
+                } else if(containerType == MessageListenerContainerType.REPOSITORY) {
+                    var aggregateName = NamingConventions.aggregateNameFromSimpleRepositoryName(simpleName.getText());
+                    var aggregate = modelOrElseThrow().aggregate(aggregateName);
+                    return aggregate.map(Aggregate::standaloneRepositorySource);
+                } else {
+                    return Optional.empty();
+                }
+            } catch (IllegalArgumentException e) {
+                return Optional.empty();
+            }
         }
     }
 
@@ -273,9 +313,15 @@ public class EmilHyperlinkDetector extends AbstractHyperlinkDetector {
             String methodName,
             String messageTypeName) {
         return unit -> {
-            var listenerContainer = unit
-                    .getType(qualifiedName.qualifier.getText())
-                    .getType(qualifiedName.name.getText());
+            IType listenerContainer;
+            if(qualifiedName != null) {
+                listenerContainer = unit
+                        .getType(qualifiedName.qualifier.getText())
+                        .getType(qualifiedName.name.getText());
+            } else {
+                listenerContainer = unit.getType(simpleName.getText());
+            }
+
             if(listenerContainer.exists()) {
                 IMethod method;
                 if(HOOK_NAMES.contains(methodName)) {
@@ -301,7 +347,10 @@ public class EmilHyperlinkDetector extends AbstractHyperlinkDetector {
             if(aggregateRoot.qualifiedName() != null) {
                 tryAddLinksOfAggregateContainer(aggregateRoot.qualifiedName());
             } else {
-                // TODO standalone root
+                tryAddLinkStandaloneComponent(
+                        aggregateRoot.simpleRootName,
+                        NamingConventions::aggregateNameFromSimpleRootName,
+                        aggregate -> aggregate.map(Aggregate::standaloneRootSource));
             }
         }
     }
@@ -331,7 +380,8 @@ public class EmilHyperlinkDetector extends AbstractHyperlinkDetector {
                 aggregateRootConsumption.aggregateRoot().qualifiedRootName,
                 aggregateRootConsumption.aggregateRoot().simpleRootName,
                 aggregateRootConsumption.listenerName,
-                messageTypeName);
+                messageTypeName,
+                MessageListenerContainerType.ROOT);
         tryAddLinks(aggregateRootConsumption.eventProductions());
     }
 
@@ -341,14 +391,16 @@ public class EmilHyperlinkDetector extends AbstractHyperlinkDetector {
                 repositoryConsumption.qualifiedRepositoryName,
                 repositoryConsumption.simpleRepositoryName,
                 repositoryConsumption.listenerName,
-                messageTypeName);
+                messageTypeName,
+                MessageListenerContainerType.REPOSITORY);
         if(repositoryConsumption.aggregateRoot() != null) {
             tryAddLinks(repositoryConsumption.aggregateRoot());
             tryAddLinkListener(
                     repositoryConsumption.aggregateRoot().qualifiedRootName,
                     repositoryConsumption.aggregateRoot().simpleRootName,
                     hookNameToken(repositoryConsumption, "onDelete"),
-                    null);
+                    null,
+                    MessageListenerContainerType.ROOT);
             tryAddLinks(repositoryConsumption.eventProductions());
         }
     }
@@ -357,7 +409,10 @@ public class EmilHyperlinkDetector extends AbstractHyperlinkDetector {
         if(repositoryConsumption.qualifiedName() != null) {
             tryAddLinksOfAggregateContainer(repositoryConsumption.qualifiedName());
         } else {
-            // TODO standalone repository
+            tryAddLinkStandaloneComponent(
+                    repositoryConsumption.simpleRepositoryName,
+                    NamingConventions::aggregateNameFromSimpleRepositoryName,
+                    aggregate -> aggregate.map(Aggregate::standaloneRepositorySource));
         }
     }
 

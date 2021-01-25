@@ -3,6 +3,8 @@ package poussecafe.eclipse.plugin.core;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IncrementalProjectBuilder;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -26,9 +28,12 @@ public class PousseCafeProject {
         return project;
     }
 
-    public synchronized void addListener(ChangeListener listener) {
-        listeners.add(listener);
-        if(model != null) {
+    public void addListener(ChangeListener listener) {
+        synchronized(this) {
+            listeners.add(listener);
+        }
+
+        if(model().isPresent()) {
             listener.consume(this);
         } else {
             triggerPousseCafeBuilder();
@@ -39,7 +44,7 @@ public class PousseCafeProject {
 
     private Model model;
 
-    private void triggerPousseCafeBuilder() {
+    private synchronized void triggerPousseCafeBuilder() {
         if(!buildInProgress) {
             var job = Job.create("Build Pousse-Café project " + project.getProject().getName(),
                     this::buildPousseCafeProject);
@@ -64,11 +69,12 @@ public class PousseCafeProject {
         listeners.remove(listener);
     }
 
-    public synchronized void refresh(Model model) {
-        requireNonNull(model);
-        this.model = model;
-
-        buildInProgress = false;
+    public void refresh(Model model) {
+        synchronized(this) {
+            requireNonNull(model);
+            this.model = model;
+            buildInProgress = false;
+        }
 
         for(ChangeListener listener : listeners) {
             listener.consume(this);
@@ -78,4 +84,17 @@ public class PousseCafeProject {
     public synchronized Optional<Model> model() {
         return Optional.ofNullable(model);
     }
+
+    public IFile createTempFile(String fileName) throws CoreException {
+        var tempFolder = project.getJavaProject().getProject().getFolder(PLUGIN_TEMP_FOLDER);
+        tempFolder.refreshLocal(IResource.DEPTH_INFINITE, null);
+        if(!tempFolder.exists()) {
+            tempFolder.create(false, true, null);
+        }
+        var tempFile = tempFolder.getFile(fileName);
+        tempFile.refreshLocal(IResource.DEPTH_ZERO, null);
+        return tempFile;
+    }
+
+    private static final String PLUGIN_TEMP_FOLDER = ".pousse-cafe";
 }

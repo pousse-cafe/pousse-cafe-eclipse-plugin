@@ -1,4 +1,4 @@
-package poussecafe.eclipse.plugin.builder;
+package poussecafe.eclipse.plugin.handlers;
 
 import java.util.Iterator;
 import javax.inject.Inject;
@@ -13,6 +13,7 @@ import org.eclipse.core.runtime.ILog;
 import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.ui.handlers.HandlerUtil;
+import poussecafe.eclipse.plugin.builder.PousseCafeNature;
 
 public class AddRemovePousseCafeNatureHandler extends AbstractHandler {
 

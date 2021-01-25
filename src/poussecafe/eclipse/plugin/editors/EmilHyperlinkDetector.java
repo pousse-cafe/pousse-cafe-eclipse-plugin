@@ -15,7 +15,6 @@ import org.eclipse.jdt.core.IMember;
 import org.eclipse.jdt.core.IMethod;
 import org.eclipse.jdt.core.IType;
 import org.eclipse.jdt.core.Signature;
-import org.eclipse.jdt.ui.actions.OpenAction;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.IRegion;
 import org.eclipse.jface.text.ITextViewer;
@@ -25,6 +24,8 @@ import org.eclipse.ui.IEditorInput;
 import org.eclipse.ui.texteditor.IDocumentProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import poussecafe.eclipse.plugin.actions.OpenEmilEditorAction;
+import poussecafe.eclipse.plugin.actions.OpenJavaEditorAction;
 import poussecafe.eclipse.plugin.builder.ResourceSource;
 import poussecafe.source.Source;
 import poussecafe.source.emil.parser.EmilParser.AggregateRootConsumptionContext;
@@ -53,8 +54,6 @@ import poussecafe.source.model.Model;
 import poussecafe.source.model.ProcessModel;
 
 public class EmilHyperlinkDetector extends AbstractHyperlinkDetector {
-
-    private OpenAction openAction;
 
     @Override
     public IHyperlink[] detectHyperlinks(ITextViewer textViewer, IRegion region, boolean canShowMultipleHyperlinks) {
@@ -128,12 +127,15 @@ public class EmilHyperlinkDetector extends AbstractHyperlinkDetector {
                 if(member.isPresent()
                         && member.get().exists()) {
                     logger.debug("Found link with region {}..{}", linkRegion.getOffset(), linkRegion.getOffset() + linkRegion.getLength() - 1);
-                    var link = new IMemberHyperlink.Builder()
-                            .region(linkRegion)
-                            .action(openAction)
+                    var openJavaEditor = new OpenJavaEditorAction.Builder()
+                            .site(editor.getSite())
                             .member(member.get())
                             .build();
-                    links.add(link);
+                    links.add(new ActionHyperlink.Builder()
+                            .region(linkRegion)
+                            .name(member.get().getElementName())
+                            .action(openJavaEditor)
+                            .build());
                 }
             }
         }
@@ -417,7 +419,23 @@ public class EmilHyperlinkDetector extends AbstractHyperlinkDetector {
     }
 
     private void tryAddLinks(ProcessConsumptionContext processConsumption) {
-        // TODO open EMIL of linked process
+        var processNameToken = processConsumption.NAME();
+        var linkRegion = region(processNameToken.getSymbol());
+        if(new RegionQueries(linkRegion).contains(region)) {
+            logger.debug("Found link with region {}..{}", linkRegion.getOffset(), linkRegion.getOffset() + linkRegion.getLength() - 1);
+            var processName = processNameToken.getText();
+            var openEmilEditor = new OpenEmilEditorAction.Builder()
+                    .processName(processName)
+                    .project(editor.getPousseCafeProject())
+                    .workbenchWindow(editor.getSite().getWorkbenchWindow())
+                    .build();
+            var link = new ActionHyperlink.Builder()
+                    .region(linkRegion)
+                    .action(openEmilEditor)
+                    .name(processName)
+                    .build();
+            links.add(link);
+        }
     }
 
     private void tryAddLinksOfEventConsumption(ConsumptionContext consumption) {
@@ -435,6 +453,5 @@ public class EmilHyperlinkDetector extends AbstractHyperlinkDetector {
 
     public EmilHyperlinkDetector(EmilEditor editor) {
         this.editor = editor;
-        openAction = new OpenAction(editor.getSite());
     }
 }

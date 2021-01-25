@@ -1,14 +1,8 @@
 package poussecafe.eclipse.plugin.views;
 
-import java.io.ByteArrayInputStream;
-import java.util.Optional;
 import javax.inject.Inject;
-import org.eclipse.core.resources.IFile;
-import org.eclipse.core.resources.IResource;
-import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
-import org.eclipse.core.runtime.Platform;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.ui.IPackagesViewPart;
@@ -27,13 +21,12 @@ import org.eclipse.ui.ISelectionListener;
 import org.eclipse.ui.ISharedImages;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.PlatformUI;
-import org.eclipse.ui.part.FileEditorInput;
 import org.eclipse.ui.part.ViewPart;
 import org.eclipse.ui.progress.UIJob;
+import poussecafe.eclipse.plugin.actions.OpenEmilEditorAction;
 import poussecafe.eclipse.plugin.builder.PousseCafeNature;
 import poussecafe.eclipse.plugin.core.PousseCafeCore;
 import poussecafe.eclipse.plugin.core.PousseCafeProject;
-import poussecafe.source.emil.EmilExporter;
 import poussecafe.source.model.ProcessModel;
 
 public class ProcessListView extends ViewPart {
@@ -153,51 +146,16 @@ public class ProcessListView extends ViewPart {
             public void run() {
                 IStructuredSelection selection = viewer.getStructuredSelection();
                 String processName = (String) selection.getFirstElement();
-
-                var exporter = new EmilExporter.Builder()
-                        .model(currentProject.model().orElseThrow())
-                        .processName(Optional.of(processName))
+                var openEmilEditor = new OpenEmilEditorAction.Builder()
+                        .processName(processName)
+                        .project(currentProject)
+                        .workbenchWindow(getSite().getWorkbenchWindow())
                         .build();
-                String emil = exporter.toEmil();
-
-                try {
-                    var emilFileName = emilFileName(processName);
-                    var emilFile = createTempFile(emilFileName);
-                    emilFile.refreshLocal(IResource.DEPTH_ZERO, null);
-                    var buffer = new ByteArrayInputStream(emil.getBytes());
-                    if(emilFile.exists()) {
-                        emilFile.setContents(buffer, IResource.FORCE, null);
-                    } else {
-                        emilFile.create(buffer, false, null);
-                    }
-
-                    var workbenchWindow = getSite().getWorkbenchWindow();
-                    var editorRegistry = workbenchWindow.getWorkbench().getEditorRegistry();
-                    var editorDescriptor = editorRegistry.getDefaultEditor(emilFileName);
-                    workbenchWindow.getActivePage().openEditor(new FileEditorInput(emilFile), editorDescriptor.getId());
-                } catch (CoreException e) {
-                    Platform.getLog(getClass()).error("Unable to write EMIL file", e);
-                }
+                openEmilEditor.run();
             }
         };
         viewer.addDoubleClickListener(event -> doubleClickAction.run());
     }
-
-    private String emilFileName(String processName) {
-        return processName + ".emil";
-    }
-
-    private IFile createTempFile(String fileName) throws CoreException {
-        var project = currentProject.getJavaProject().getProject();
-        var tempFolder = project.getFolder(PLUGIN_TEMP_FOLDER);
-        tempFolder.refreshLocal(IResource.DEPTH_INFINITE, null);
-        if(!tempFolder.exists()) {
-            tempFolder.create(false, true, null);
-        }
-        return tempFolder.getFile(fileName);
-    }
-
-    private static final String PLUGIN_TEMP_FOLDER = ".pousse-cafe";
 
     private void fillActionBar() {
         var toolBar = getViewSite().getActionBars().getToolBarManager();

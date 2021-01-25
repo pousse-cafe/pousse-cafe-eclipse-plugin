@@ -1,14 +1,12 @@
 package poussecafe.eclipse.plugin.editors;
 
-import org.eclipse.jdt.core.IMember;
-import org.eclipse.jdt.ui.actions.OpenAction;
+import org.eclipse.jface.action.Action;
 import org.eclipse.jface.text.IRegion;
 import org.eclipse.jface.text.hyperlink.IHyperlink;
-import org.eclipse.jface.viewers.StructuredSelection;
 
 import static java.util.Objects.requireNonNull;
 
-public class IMemberHyperlink implements IHyperlink {
+public class ActionHyperlink implements IHyperlink {
 
     @Override
     public IRegion getHyperlinkRegion() {
@@ -24,25 +22,25 @@ public class IMemberHyperlink implements IHyperlink {
 
     @Override
     public String getHyperlinkText() {
-        return "Open " + member.getElementName();
+        return "Open " + name;
     }
 
-    private IMember member;
+    private String name;
 
     @Override
     public void open() {
-        action.run(new StructuredSelection(member));
+        action.run();
     }
 
-    private OpenAction action;
+    private Action action;
 
     public static class Builder {
 
-        private IMemberHyperlink link = new IMemberHyperlink();
+        private ActionHyperlink link = new ActionHyperlink();
 
-        public IMemberHyperlink build() {
+        public ActionHyperlink build() {
             requireNonNull(link.region);
-            requireNonNull(link.member);
+            requireNonNull(link.name);
             requireNonNull(link.action);
             return link;
         }
@@ -52,18 +50,18 @@ public class IMemberHyperlink implements IHyperlink {
             return this;
         }
 
-        public Builder member(IMember member) {
-            link.member = member;
+        public Builder name(String name) {
+            link.name = name;
             return this;
         }
 
-        public Builder action(OpenAction action) {
+        public Builder action(Action action) {
             link.action = action;
             return this;
         }
     }
 
-    private IMemberHyperlink() {
+    private ActionHyperlink() {
 
     }
 }

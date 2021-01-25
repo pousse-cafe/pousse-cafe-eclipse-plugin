@@ -28,14 +28,14 @@
    <extension
          point="org.eclipse.ui.commands">
       <category
-            id="poussecafe.eclipse.plugin.pousseCafeNature.category"
+            id="poussecafe.eclipse.plugin.commands.category"
             name="Pousse-Café Nature commands">
       </category>
       <command
-            categoryId="poussecafe.eclipse.plugin.pousseCafeNature.category"
-            defaultHandler="poussecafe.eclipse.plugin.builder.AddRemovePousseCafeNatureHandler"
+            categoryId="poussecafe.eclipse.plugin.commands.category"
+            defaultHandler="poussecafe.eclipse.plugin.handlers.AddRemovePousseCafeNatureHandler"
             id="poussecafe.eclipse.plugin.addRemovePousseCafeNature"
-            name="Add/Remove Pousse-Café Nature">
+            name="Add/Remove Pousse-Café nature">
       </command>
    </extension>
    <extension

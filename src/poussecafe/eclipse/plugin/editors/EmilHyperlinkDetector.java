@@ -52,6 +52,7 @@ import poussecafe.source.model.DomainEvent;
 import poussecafe.source.model.MessageListenerContainerType;
 import poussecafe.source.model.Model;
 import poussecafe.source.model.ProcessModel;
+import poussecafe.source.model.Runner;
 
 public class EmilHyperlinkDetector extends AbstractHyperlinkDetector {
 
@@ -378,6 +379,19 @@ public class EmilHyperlinkDetector extends AbstractHyperlinkDetector {
 
     private void tryAddLinks(String messageTypeName, AggregateRootConsumptionContext aggregateRootConsumption) {
         tryAddLinks(aggregateRootConsumption.aggregateRoot());
+        var aggregateName = aggregateName(aggregateRootConsumption.aggregateRoot());
+        var listener = modelOrElseThrow().aggregateListeners(aggregateName)
+                .stream()
+                .filter(candidate -> candidate.methodName().equals(aggregateRootConsumption.listenerName.getText()))
+                .filter(candidate -> candidate.consumedMessage().name().equals(messageTypeName))
+                .findFirst();
+        if(listener.isPresent()
+                && listener.get().runnerClass().isPresent()) {
+            var runner = modelOrElseThrow().runner(listener.get().runnerClass().orElseThrow());
+            tryAddLink(aggregateRootConsumption.runnerName,
+                    runner.map(Runner::runnerSource),
+                    unit -> Optional.of(unit.getType(aggregateRootConsumption.runnerName.getText())));
+        }
         tryAddLinkListener(
                 aggregateRootConsumption.aggregateRoot().qualifiedRootName,
                 aggregateRootConsumption.aggregateRoot().simpleRootName,
@@ -385,6 +399,14 @@ public class EmilHyperlinkDetector extends AbstractHyperlinkDetector {
                 messageTypeName,
                 MessageListenerContainerType.ROOT);
         tryAddLinks(aggregateRootConsumption.eventProductions());
+    }
+
+    private String aggregateName(AggregateRootContext aggregateRoot) {
+        if(aggregateRoot.qualifiedRootName != null) {
+            return aggregateRoot.qualifiedRootName.qualifier.getText();
+        } else {
+            return NamingConventions.aggregateNameFromSimpleRootName(aggregateRoot.simpleRootName.getText());
+        }
     }
 
     private void tryAddLinks(String messageTypeName, RepositoryConsumptionContext repositoryConsumption) {

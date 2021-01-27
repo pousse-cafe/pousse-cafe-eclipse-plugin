@@ -112,20 +112,8 @@ public class JdtResolvedClass implements ResolvedClass {
         return instanceOf(consideredType);
     }
 
-    private boolean instanceOf(JdtResolvedClass superclass) {
-        if(superclass.name().equals(name())) {
-            return true;
-        } else {
-            for(IType superclassType : superclass.types()) {
-                var supertypeHierarchy = resolver.typeHierarchies().newTypeHierarchy(superclassType);
-                for(IType type : types) {
-                    if(supertypeHierarchy.contains(type)) {
-                        return true;
-                    }
-                }
-            }
-            return false;
-        }
+    private boolean instanceOf(JdtResolvedClass resolvedClass) {
+        return resolver.instanceOf(this, resolvedClass);
     }
 
     @Override
@@ -182,6 +170,16 @@ public class JdtResolvedClass implements ResolvedClass {
                     .build());
         } else {
             return Optional.empty();
+        }
+    }
+
+    @Override
+    public boolean isInterface() {
+        try {
+            return types.iterator().next().isInterface();
+        } catch (JavaModelException e) {
+            logError("Unable to tell if resolved class is an interface", e);
+            return false;
         }
     }
 

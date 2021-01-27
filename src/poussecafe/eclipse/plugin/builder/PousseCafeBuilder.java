@@ -17,9 +17,12 @@ import org.eclipse.core.runtime.Platform;
 import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.core.JavaCore;
 import poussecafe.eclipse.plugin.core.PousseCafeCore;
-import poussecafe.source.SourceModelBuilder;
+import poussecafe.source.SourceScanner;
+import poussecafe.source.analysis.SourceModelBuilderVisitor;
+import poussecafe.source.analysis.TypeResolvingCompilationUnitVisitor;
 import poussecafe.source.validation.ValidationMessage;
 import poussecafe.source.validation.ValidationMessageType;
+import poussecafe.source.validation.ValidationModelBuilderVisitor;
 import poussecafe.source.validation.Validator;
 
 public class PousseCafeBuilder extends IncrementalProjectBuilder {
@@ -46,7 +49,7 @@ public class PousseCafeBuilder extends IncrementalProjectBuilder {
         if(kind == INCREMENTAL_BUILD
                 || kind == AUTO_BUILD) {
             var delta = getDelta(getProject());
-            if(!isJavaSourceDelta(delta)) {
+            if(!changeTriggeringBuild(delta)) {
                 return new IProject[0];
             }
         }
@@ -72,13 +75,13 @@ public class PousseCafeBuilder extends IncrementalProjectBuilder {
         return new IProject[0];
     }
 
-    private boolean isJavaSourceDelta(IResourceDelta delta) {
+    private boolean changeTriggeringBuild(IResourceDelta delta) {
         var resource = delta.getResource();
         if(Resources.isJavaSourceFile(resource)) {
-            return true;
+            return isNewOrUpdatedPousseCafeResource((IFile) delta.getResource());
         } else {
             for(IResourceDelta child : delta.getAffectedChildren()) {
-                if(isJavaSourceDelta(child)) {
+                if(changeTriggeringBuild(child)) {
                     return true;
                 }
             }
@@ -86,11 +89,35 @@ public class PousseCafeBuilder extends IncrementalProjectBuilder {
         }
     }
 
+    private boolean isNewOrUpdatedPousseCafeResource(IFile delta) {
+        var source = new ResourceSource.Builder()
+                .project(javaProject())
+                .file(delta)
+                .build();
+        return SourceScanner.isPousseCafeResource(source)
+                && isNewOrUpdated(source);
+    }
+
+    private boolean isNewOrUpdated(ResourceSource source) {
+        if(scanner == null) {
+            return true;
+        } else {
+            var sourceId = source.id();
+            return !scanner.includedSource(source.id())
+                    || scanner.providedPousseCafeResource(sourceId);
+        }
+    }
+
     private void buildModels(IProgressMonitor monitor) {
-        var classResolver = new JdtClassResolver(javaProject());
-        validator = new Validator(classResolver,
-                Optional.of(new JdtClassPathExplorer(classResolver)));
-        modelBuilder = new SourceModelBuilder(classResolver);
+        long start = System.currentTimeMillis();
+        classResolver = new JdtClassResolver(javaProject());
+        validationVisitor = new ValidationModelBuilderVisitor();
+        sourceModelVisitor = new SourceModelBuilderVisitor();
+        scanner = new SourceScanner(new TypeResolvingCompilationUnitVisitor.Builder()
+                .withClassResolver(classResolver)
+                .withVisitor(sourceModelVisitor)
+                .withVisitor(validationVisitor)
+                .build());
 
         files.clear();
         try {
@@ -98,7 +125,11 @@ public class PousseCafeBuilder extends IncrementalProjectBuilder {
         } catch (CoreException e) {
             logger.error("Unable to validate project", e);
         }
+        long end = System.currentTimeMillis();
+        logger.info("Scanned project in " + (end - start) + " ms");
     }
+
+    private JdtClassResolver classResolver;
 
     private IJavaProject javaProject() {
         if(javaProject == null) {
@@ -109,9 +140,11 @@ public class PousseCafeBuilder extends IncrementalProjectBuilder {
 
     private IJavaProject javaProject;
 
-    private Validator validator;
+    private ValidationModelBuilderVisitor validationVisitor;
 
-    private SourceModelBuilder modelBuilder;
+    private SourceModelBuilderVisitor sourceModelVisitor;
+
+    private SourceScanner scanner;
 
     private Map<String, IFile> files = new HashMap<>();
 
@@ -131,26 +164,21 @@ public class PousseCafeBuilder extends IncrementalProjectBuilder {
             }
             monitor.subTask("Pousse-Café build: scanning " + source.id());
             files.put(source.id(), source.file());
-            try {
-                validator.includeSource(source);
-            } catch (Exception e) {
-                logger.error("Validator skips resource " + source.id(), e);
-            }
-            try {
-                modelBuilder.includeSource(source);
-            } catch (Exception e) {
-                logger.error("Model builder skips resource " + source.id(), e);
-            }
+            scanner.includeSource(source);
         }
     }
 
     private void validateProject() {
+        validator = new Validator(validationVisitor.buildModel(),
+                Optional.of(new JdtClassPathExplorer(classResolver)));
         validator.validate();
     }
 
+    private Validator validator;
+
     private void refreshPousseCafeProject() {
         var pousseCafeProject = PousseCafeCore.getProject(javaProject);
-        pousseCafeProject.refresh(modelBuilder.build());
+        pousseCafeProject.refresh(sourceModelVisitor.buildModel());
     }
 
     private void refreshMarkers() {

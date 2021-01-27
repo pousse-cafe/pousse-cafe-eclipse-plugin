@@ -7,6 +7,9 @@ import java.util.Map;
 import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.core.IType;
 import org.eclipse.jdt.core.JavaModelException;
+import org.eclipse.jdt.core.Signature;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import poussecafe.eclipse.plugin.core.JavaSearchEngine;
 import poussecafe.source.analysis.ClassResolver;
 import poussecafe.source.analysis.Name;
@@ -46,8 +49,11 @@ public class JdtClassResolver extends ClassResolver {
     private Map<Name, List<IType>> searchResults = new HashMap<>();
 
     private List<IType> doSearchType(Name typeName) {
+        logger.debug("Searching for type {}", typeName);
         return searchEngine.searchType(typeName);
     }
+
+    private Logger logger = LoggerFactory.getLogger(getClass());
 
     public JdtResolvedClass resolve(Collection<IType> types) {
         return new JdtResolvedClass.Builder()
@@ -72,4 +78,84 @@ public class JdtClassResolver extends ClassResolver {
     }
 
     private JavaSearchEngine searchEngine;
+
+    public boolean instanceOf(JdtResolvedClass subject,
+            JdtResolvedClass supertype) {
+        var relation = relation(subject, supertype);
+        Boolean value = instanceOfRelations.get(relation);
+        if(value != null) {
+            return value;
+        } else {
+            value = computeInstanceOf(subject, supertype);
+            instanceOfRelations.put(relation, value);
+            return value;
+        }
+    }
+
+    private Map<String, Boolean> instanceOfRelations = new HashMap<>();
+
+    private String relation(JdtResolvedClass subject, JdtResolvedClass supertype) {
+        return subject.name().toString() + "+" + supertype.name().toString();
+    }
+
+    private Boolean computeInstanceOf(JdtResolvedClass subject, JdtResolvedClass supertype) {
+        if(subject.isInterface() && !supertype.isInterface()) {
+            return false;
+        }
+        if(supertype.name().equals(subject.name())) {
+            return true;
+        } else {
+            try {
+                for(IType type : subject.types()) {
+                    if(computeInstanceOf(type, supertype)) {
+                        return true;
+                    }
+                }
+                return false;
+            } catch (JavaModelException e) {
+                return false;
+            }
+        }
+    }
+
+    private boolean computeInstanceOf(IType type, JdtResolvedClass supertype) throws JavaModelException {
+        if(supertype.isInterface()) {
+            for(String superinterfaceSignature : type.getSuperInterfaceTypeSignatures()) {
+                var superinterfaceName = convertSignatureIntoName(superinterfaceSignature, type);
+                var superinterface = loadClass(new Name(superinterfaceName))
+                        .map(JdtResolvedClass.class::cast);
+                if(superinterface.isPresent()
+                        && instanceOf(superinterface.get(), supertype)) {
+                    return true;
+                }
+            }
+        }
+
+        var superclassSignature = type.getSuperclassTypeSignature();
+        if(superclassSignature != null
+                && !superclassSignature.equals("java.lang.Object")) {
+            var superclassName = convertSignatureIntoName(superclassSignature, type);
+            var superclass = loadClass(new Name(superclassName)).map(JdtResolvedClass.class::cast);
+            if(superclass.isPresent()
+                    && instanceOf(superclass.get(), supertype)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private String convertSignatureIntoName(String typeSignature, IType type) throws JavaModelException, IllegalArgumentException {
+        var typeErasure = Signature.getTypeErasure(typeSignature);
+        if(typeErasure.charAt(0) == Signature.C_UNRESOLVED) {
+            var resolvedName = type.resolveType(Signature.toString(typeErasure));
+            if(resolvedName.length > 0) {
+                return Signature.toQualifiedName(resolvedName[0]);
+            } else {
+                return Signature.toString(typeErasure);
+            }
+        } else {
+            return Signature.toString(typeErasure);
+        }
+    }
 }

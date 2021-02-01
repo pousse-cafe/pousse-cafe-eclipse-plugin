@@ -62,9 +62,18 @@ public class PousseCafeBuilder extends IncrementalProjectBuilder {
             monitor.subTask("Pousse-Café build: incremental...");
             long start = System.currentTimeMillis();
             var delta = getDelta(getProject());
-            var updatedResources = updatedResources(delta);
-            for(ResourceSource source: updatedResources) {
-                includeFile(source);
+            var updatedResources = relevantDeltas(delta);
+            for(IResourceDelta source: updatedResources) {
+                var resource = new ResourceSource.Builder()
+                        .file((IFile) source.getResource())
+                        .project(javaProject())
+                        .build();
+                if(source.getKind() == IResourceDelta.ADDED
+                        || source.getKind() == IResourceDelta.CHANGED) {
+                    includeFile(resource);
+                } else {
+                    scanner.forget(resource.id());
+                }
             }
             long end = System.currentTimeMillis();
             logger.info("Scanned delta in " + (end - start) + " ms");
@@ -90,19 +99,16 @@ public class PousseCafeBuilder extends IncrementalProjectBuilder {
         return new IProject[0];
     }
 
-    private List<ResourceSource> updatedResources(IResourceDelta delta) {
-        var updatedResources = new ArrayList<ResourceSource>();
+    private List<IResourceDelta> relevantDeltas(IResourceDelta delta) {
+        var updatedResources = new ArrayList<IResourceDelta>();
         changeTriggeringBuild(updatedResources, delta);
         return updatedResources;
     }
 
-    private void changeTriggeringBuild(List<ResourceSource> resources, IResourceDelta delta) {
+    private void changeTriggeringBuild(List<IResourceDelta> resources, IResourceDelta delta) {
         var resource = delta.getResource();
         if(Resources.isJavaSourceFile(resource)) {
-            resources.add(new ResourceSource.Builder()
-                    .file((IFile) resource)
-                    .project(javaProject())
-                    .build());
+            resources.add(delta);
         } else {
             for(IResourceDelta child : delta.getAffectedChildren()) {
                 changeTriggeringBuild(resources, child);

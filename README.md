@@ -87,6 +87,8 @@ plug-in manifest.
 
 ### Release a new version of the plug-in
 
+1. In `pousse-cafe-eclipse-feature` project, synchronize plug-ins versions and change version number
+2. In `pousse-cafe-eclipse-site` project, re-add the feature
 1. In `pousse-cafe-eclipse-site` project, re-build site ("Build All" command)
 2. Check that expected plug-in JARs have been copied to the `plugins` folder
 3. Copy local content to remote site.

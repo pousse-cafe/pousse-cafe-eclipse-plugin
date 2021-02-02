@@ -1,5 +1,6 @@
 package poussecafe.eclipse.plugin.core;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -7,15 +8,18 @@ import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IncrementalProjectBuilder;
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.IAdaptable;
 import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.core.runtime.QualifiedName;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.jdt.core.IJavaProject;
 import poussecafe.eclipse.plugin.builder.PousseCafeBuilder;
+import poussecafe.eclipse.plugin.properties.PousseCafeProjectPropertyPage;
 import poussecafe.source.model.Model;
 
 import static java.util.Objects.requireNonNull;
 
-public class PousseCafeProject {
+public class PousseCafeProject implements IAdaptable {
 
     PousseCafeProject(IJavaProject project) {
         requireNonNull(project);
@@ -97,4 +101,33 @@ public class PousseCafeProject {
     }
 
     private static final String PLUGIN_TEMP_FOLDER = ".pousse-cafe";
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public <T> T getAdapter(Class<T> adapter) {
+        if(adapter.isAssignableFrom(IResource.class)) {
+            return (T) project.getProject();
+        }
+        return null;
+    }
+
+    public String getBasePackage() {
+        return getProperty(PousseCafeProjectPropertyPage.BASE_PACKAGE_PROPERTY_NAME,
+                PousseCafeProjectPropertyPage.DEFAULT_BASE_PACKAGE);
+    }
+
+    private String getProperty(QualifiedName name, String defaultValue) {
+        var resource = project.getProject();
+        try {
+            return resource.getPersistentProperty(name);
+        } catch (CoreException e) {
+            return defaultValue;
+        }
+    }
+
+    public Path getSourceFolder() {
+        var relativeSourceFolder = getProperty(PousseCafeProjectPropertyPage.SOURCE_FOLDER_PROPERTY_NAME,
+                PousseCafeProjectPropertyPage.DEFAULT_SOURCE_FOLDER);
+        return Path.of(project.getProject().getRawLocation().toOSString(), relativeSourceFolder);
+    }
 }

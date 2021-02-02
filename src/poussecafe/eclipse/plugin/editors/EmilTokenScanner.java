@@ -5,6 +5,7 @@ import java.util.Iterator;
 import java.util.List;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.TerminalNode;
+import org.eclipse.core.resources.IMarker;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.TextAttribute;
 import org.eclipse.jface.text.rules.IToken;
@@ -48,6 +49,10 @@ public class EmilTokenScanner implements ITokenScanner {
             tokens.clear();
             tree = parser.tree();
             computeTokens();
+        } else {
+            for(EmilStringParser.Error error : parser.errors()) {
+                editor.addMarker(error.message(), error.line(), IMarker.SEVERITY_ERROR, error.position());
+            }
         }
 
         tokenIterator = tokens.iterator();

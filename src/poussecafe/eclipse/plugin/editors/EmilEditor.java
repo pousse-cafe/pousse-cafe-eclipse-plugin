@@ -78,10 +78,14 @@ public class EmilEditor extends TextEditor implements ChangeListener {
     protected void doSetInput(IEditorInput input) throws CoreException {
         super.doSetInput(input);
 
-        IEditorInput editorInput = getEditorInput();
-        var file = editorInput.getAdapter(IFile.class);
+        var file = getInputFile();
         project = PousseCafeCore.getProject(JavaCore.create(file.getProject()));
         project.addListener(this);
+    }
+
+    private IFile getInputFile() {
+        IEditorInput editorInput = getEditorInput();
+        return editorInput.getAdapter(IFile.class);
     }
 
     private PousseCafeProject project;
@@ -93,5 +97,9 @@ public class EmilEditor extends TextEditor implements ChangeListener {
 
     public PousseCafeProject getPousseCafeProject() {
         return project;
+    }
+
+    public String getContent() {
+        return getDocumentProvider().getDocument(getEditorInput()).get();
     }
 }

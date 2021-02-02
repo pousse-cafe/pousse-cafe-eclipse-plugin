@@ -49,6 +49,7 @@ public class EmilStringParser {
             var error = new Error();
             error.position = position;
             error.message = msg;
+            error.line = line;
             errors.add(error);
         }
     };
@@ -67,6 +68,12 @@ public class EmilStringParser {
             return message;
         }
 
+        private int line;
+
+        public int line() {
+            return line;
+        }
+
         private Error() {
 
         }
@@ -76,5 +83,9 @@ public class EmilStringParser {
 
     public List<Error> errors() {
         return Collections.unmodifiableList(errors);
+    }
+
+    public boolean isValid() {
+        return errors.isEmpty();
     }
 }

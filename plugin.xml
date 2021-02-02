@@ -37,6 +37,11 @@
             id="poussecafe.eclipse.plugin.addRemovePousseCafeNature"
             name="Add/Remove Pousse-Café nature">
       </command>
+      <command
+            categoryId="poussecafe.eclipse.plugin.commands.category"
+            id="poussecafe.eclipse.plugin.commands.generateCode"
+            name="Generate code">
+      </command>
    </extension>
    <extension
          point="org.eclipse.ui.menus">
@@ -44,6 +49,7 @@
             locationURI="popup:org.eclipse.ui.projectConfigure?after=additions">
          <command
                commandId="poussecafe.eclipse.plugin.addRemovePousseCafeNature"
+               icon="icons/emil.png"
                label="Remove Pousse-Café nature"
                style="push">
             <visibleWhen
@@ -67,6 +73,7 @@
          </command>
          <command
                commandId="poussecafe.eclipse.plugin.addRemovePousseCafeNature"
+               icon="icons/emil.png"
                label="Add Pousse-Café nature"
                style="push">
             <visibleWhen
@@ -96,6 +103,19 @@
                </with>
             </visibleWhen>
          </command>
+      </menuContribution>
+      <menuContribution
+            locationURI="toolbar:org.eclipse.ui.main.toolbar?after=additions">
+         <toolbar
+               id="poussecafe.eclipse.plugin.toolbars.pousseCafeToolbar">
+            <command
+                  commandId="poussecafe.eclipse.plugin.commands.generateCode"
+                  icon="icons/emil.png"
+                  id="poussecafe.eclipse.plugin.toolbars.generateCode"
+                  label="Pousse-Café toolbar"
+                  tooltip="Generate code using active EMIL editor&apos;s content">
+            </command>
+         </toolbar>
       </menuContribution>
    </extension>
    <extension
@@ -142,5 +162,34 @@
             inject="true"
             name="Process List">
       </view>
+   </extension>
+   <extension
+         point="org.eclipse.ui.handlers">
+      <handler
+            class="poussecafe.eclipse.plugin.handlers.GenerateCodeHandler"
+            commandId="poussecafe.eclipse.plugin.commands.generateCode">
+            <enabledWhen>
+                <with variable="activeEditorId">
+                    <equals
+                          value="poussecafe.eclipse.plugin.editors.EmilEditor">
+                    </equals>
+                </with>
+            </enabledWhen>
+      </handler>
+   </extension>
+   <extension
+         point="org.eclipse.ui.propertyPages">
+      <page
+            class="poussecafe.eclipse.plugin.properties.PousseCafeProjectPropertyPage"
+            id="poussecafe.eclipse.plugin.properties.pousseCafeProjectPropertyPage"
+            name="Pousse-Café">
+        <filter
+           name="open"
+           value="true">
+         </filter>
+         <enabledWhen>
+            <adapt type="org.eclipse.core.resources.IProject"/>
+         </enabledWhen>
+      </page>
    </extension>
 </plugin>

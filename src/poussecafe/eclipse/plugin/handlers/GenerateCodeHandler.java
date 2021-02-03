@@ -5,6 +5,7 @@ import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.preferences.InstanceScope;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.handlers.HandlerUtil;
@@ -40,7 +41,9 @@ public class GenerateCodeHandler extends AbstractHandler {
                     if(currentModel.isPresent()) {
                         generatorBuilder.currentModel(currentModel.get());
                     }
-                    // TODO set formatter properties
+
+                    generatorBuilder.preferencesContext(InstanceScope.INSTANCE);
+
                     var generator = generatorBuilder.build();
                     generator.generate(model);
 

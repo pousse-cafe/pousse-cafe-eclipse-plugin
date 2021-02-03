@@ -13,8 +13,10 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.QualifiedName;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.jdt.core.IJavaProject;
+import poussecafe.eclipse.plugin.builder.JdtClassResolver;
 import poussecafe.eclipse.plugin.builder.PousseCafeBuilder;
 import poussecafe.eclipse.plugin.properties.PousseCafeProjectPropertyPage;
+import poussecafe.source.analysis.ClassResolver;
 import poussecafe.source.model.Model;
 
 import static java.util.Objects.requireNonNull;
@@ -129,5 +131,9 @@ public class PousseCafeProject implements IAdaptable {
         var relativeSourceFolder = getProperty(PousseCafeProjectPropertyPage.SOURCE_FOLDER_PROPERTY_NAME,
                 PousseCafeProjectPropertyPage.DEFAULT_SOURCE_FOLDER);
         return Path.of(project.getProject().getRawLocation().toOSString(), relativeSourceFolder);
+    }
+
+    public ClassResolver buildClassResolver() {
+        return new JdtClassResolver(getJavaProject());
     }
 }

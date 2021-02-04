@@ -1,8 +1,6 @@
 package poussecafe.eclipse.plugin.builder;
 
-import java.io.IOException;
 import org.eclipse.core.resources.IFile;
-import org.eclipse.core.runtime.CoreException;
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.core.JavaCore;
@@ -36,23 +34,6 @@ public class ResourceSource implements Source {
     }
 
     private IFile file;
-
-    @Override
-    public String content() {
-        return readAllChars();
-    }
-
-    private String readAllChars() {
-        byte[] bytes;
-        try {
-            var inputStream = file.getContents();
-            bytes = inputStream.readAllBytes();
-            inputStream.close();
-        } catch (CoreException | IOException e) {
-            throw new IllegalArgumentException("Unable to read path content", e);
-        }
-        return new String(bytes);
-    }
 
     public static class Builder {
 

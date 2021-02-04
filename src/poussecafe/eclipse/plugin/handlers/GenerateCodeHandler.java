@@ -15,7 +15,11 @@ import poussecafe.source.emil.parser.Tree;
 import poussecafe.source.emil.parser.TreeAnalyzer;
 import poussecafe.source.emil.parser.TreeParser;
 import poussecafe.source.generation.CoreCodeGenerator;
+import poussecafe.source.generation.internal.InternalStorageAdaptersCodeGenerator;
+import poussecafe.source.model.Aggregate;
 import poussecafe.source.model.Model;
+import poussecafe.spring.jpa.storage.codegeneration.JpaStorageAdaptersCodeGenerator;
+import poussecafe.spring.mongo.storage.codegeneration.MongoStorageAdaptersCodeGenerator;
 
 public class GenerateCodeHandler extends AbstractHandler {
 
@@ -30,8 +34,13 @@ public class GenerateCodeHandler extends AbstractHandler {
             if(!activeEmilEditor.isDirty()) {
                 var tree = TreeParser.parseString(activeEmilEditor.getContent());
                 if(tree.isValid()) {
-                    generateCode(activeEmilEditor.getPousseCafeProject(), tree);
-                    MessageDialog.openInformation(window.getShell(), DIALOG_TITLE, "Code successfully generated.");
+                    var project = activeEmilEditor.getPousseCafeProject();
+                    if(project.model().isEmpty()) {
+                        MessageDialog.openWarning(window.getShell(), DIALOG_TITLE, "Build the project first or wait for current build to finish.");
+                    } else {
+                        generateCode(project, tree);
+                        MessageDialog.openInformation(window.getShell(), DIALOG_TITLE, "Code successfully generated.");
+                    }
                 } else {
                     MessageDialog.openError(window.getShell(), DIALOG_TITLE, "Cannot generated code, invalid EMIL.");
                 }
@@ -65,6 +74,33 @@ public class GenerateCodeHandler extends AbstractHandler {
         generatorBuilder.preferencesContext(InstanceScope.INSTANCE);
         var generator = generatorBuilder.build();
         generator.generate(newModel);
+
+        if(project.usesInternalStorage()) {
+            var internalGeneratorBuilder = new InternalStorageAdaptersCodeGenerator.Builder()
+                    .sourceDirectory(project.getSourceFolder());
+            internalGeneratorBuilder.preferencesContext(InstanceScope.INSTANCE);
+            for(Aggregate aggregate : newModel.aggregates()) {
+                internalGeneratorBuilder.build().generate(aggregate);
+            }
+        }
+
+        if(project.usesSpringMongoStorage()) {
+            var internalGeneratorBuilder = new MongoStorageAdaptersCodeGenerator.Builder()
+                    .sourceDirectory(project.getSourceFolder());
+            internalGeneratorBuilder.preferencesContext(InstanceScope.INSTANCE);
+            for(Aggregate aggregate : newModel.aggregates()) {
+                internalGeneratorBuilder.build().generate(aggregate);
+            }
+        }
+
+        if(project.usesSpringJpaStorage()) {
+            var internalGeneratorBuilder = new JpaStorageAdaptersCodeGenerator.Builder()
+                    .sourceDirectory(project.getSourceFolder());
+            internalGeneratorBuilder.preferencesContext(InstanceScope.INSTANCE);
+            for(Aggregate aggregate : newModel.aggregates()) {
+                internalGeneratorBuilder.build().generate(aggregate);
+            }
+        }
     }
 
     private void refreshResources(PousseCafeProject project) {

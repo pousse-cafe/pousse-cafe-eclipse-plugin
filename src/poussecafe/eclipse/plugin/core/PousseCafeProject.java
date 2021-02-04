@@ -136,4 +136,22 @@ public class PousseCafeProject implements IAdaptable {
     public ClassResolver buildClassResolver() {
         return new JdtClassResolver(getJavaProject());
     }
+
+    public boolean usesInternalStorage() {
+        var value = getProperty(PousseCafeProjectPropertyPage.USES_INTERNAL_STORAGE_PROPERTY_NAME,
+                PousseCafeProjectPropertyPage.DEFAULT_USES_INTERNAL_STORAGE);
+        return Boolean.parseBoolean(value);
+    }
+
+    public boolean usesSpringMongoStorage() {
+        var value = getProperty(PousseCafeProjectPropertyPage.USES_SPRING_MONGO_STORAGE_PROPERTY_NAME,
+                PousseCafeProjectPropertyPage.DEFAULT_USES_SPRING_MONGO_STORAGE);
+        return Boolean.parseBoolean(value);
+    }
+
+    public boolean usesSpringJpaStorage() {
+        var value = getProperty(PousseCafeProjectPropertyPage.USES_SPRING_JPA_STORAGE_PROPERTY_NAME,
+                PousseCafeProjectPropertyPage.DEFAULT_USES_SPRING_JPA_STORAGE);
+        return Boolean.parseBoolean(value);
+    }
 }

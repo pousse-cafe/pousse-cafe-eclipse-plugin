@@ -38,7 +38,7 @@ public class GenerateCodeHandler extends AbstractHandler {
                     if(project.model().isEmpty()) {
                         MessageDialog.openWarning(window.getShell(), DIALOG_TITLE, "Build the project first or wait for current build to finish.");
                     } else {
-                        generateCode(project, tree);
+                        generateCode(window, project, tree);
                         MessageDialog.openInformation(window.getShell(), DIALOG_TITLE, "Code successfully generated.");
                     }
                 } else {
@@ -51,10 +51,15 @@ public class GenerateCodeHandler extends AbstractHandler {
         return null;
     }
 
-    private void generateCode(PousseCafeProject project, Tree tree) {
-        var newModel = buildNewModel(project, tree);
-        updateCode(project, newModel);
-        refreshResources(project);
+    private void generateCode(IWorkbenchWindow window, PousseCafeProject project, Tree tree) {
+        try {
+            window.getShell().setEnabled(false);
+            var newModel = buildNewModel(project, tree);
+            updateCode(project, newModel);
+            refreshResources(project);
+        } catch (Exception e) {
+            window.getShell().setEnabled(true);
+        }
     }
 
     private Model buildNewModel(PousseCafeProject project, Tree tree) {

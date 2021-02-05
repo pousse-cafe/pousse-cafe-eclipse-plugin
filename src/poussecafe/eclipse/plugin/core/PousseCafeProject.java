@@ -2,9 +2,11 @@ package poussecafe.eclipse.plugin.core;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IncrementalProjectBuilder;
 import org.eclipse.core.runtime.CoreException;
@@ -62,7 +64,9 @@ public class PousseCafeProject implements IAdaptable {
     private boolean buildInProgress;
 
     private void buildPousseCafeProject(IProgressMonitor monitor) throws CoreException {
-        project.getProject().build(IncrementalProjectBuilder.FULL_BUILD, PousseCafeBuilder.BUILDER_ID, null, monitor);
+        var args = new HashMap<String, String>();
+        args.put(PousseCafeBuilder.TRY_INCREMENTAL_FIRST_ARG, "true");
+        project.getProject().build(IncrementalProjectBuilder.FULL_BUILD, PousseCafeBuilder.BUILDER_ID, args, monitor);
     }
 
     @FunctionalInterface
@@ -92,14 +96,19 @@ public class PousseCafeProject implements IAdaptable {
     }
 
     public IFile createTempFile(String fileName) throws CoreException {
+        var tempFolder = createPousseCafeTempFolder();
+        var tempFile = tempFolder.getFile(fileName);
+        tempFile.refreshLocal(IResource.DEPTH_ZERO, null);
+        return tempFile;
+    }
+
+    private IFolder createPousseCafeTempFolder() throws CoreException {
         var tempFolder = project.getJavaProject().getProject().getFolder(PLUGIN_TEMP_FOLDER);
         tempFolder.refreshLocal(IResource.DEPTH_INFINITE, null);
         if(!tempFolder.exists()) {
             tempFolder.create(false, true, null);
         }
-        var tempFile = tempFolder.getFile(fileName);
-        tempFile.refreshLocal(IResource.DEPTH_ZERO, null);
-        return tempFile;
+        return tempFolder;
     }
 
     private static final String PLUGIN_TEMP_FOLDER = ".pousse-cafe";
@@ -153,5 +162,12 @@ public class PousseCafeProject implements IAdaptable {
         var value = getProperty(PousseCafeProjectPropertyPage.USES_SPRING_JPA_STORAGE_PROPERTY_NAME,
                 PousseCafeProjectPropertyPage.DEFAULT_USES_SPRING_JPA_STORAGE);
         return Boolean.parseBoolean(value);
+    }
+
+    public IFile builderStateFile() throws CoreException {
+        var tempFolder = createPousseCafeTempFolder();
+        var file = tempFolder.getFile("builderState.dat");
+        file.refreshLocal(IResource.DEPTH_ZERO, null);
+        return file;
     }
 }

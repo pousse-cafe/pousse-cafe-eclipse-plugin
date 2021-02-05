@@ -11,10 +11,8 @@ public abstract class JavaSourceFileVisitor implements IResourceVisitor {
     public boolean visit(IResource resource) {
         if(Resources.isJavaSourceFile(resource)) {
             IFile file = (IFile) resource;
-            var source = new ResourceSource.Builder()
-                    .project(javaProject)
-                    .file(file)
-                    .build();
+            var source = new ResourceSource(file);
+            source.connect(javaProject);
             visit(source);
         }
         return true;

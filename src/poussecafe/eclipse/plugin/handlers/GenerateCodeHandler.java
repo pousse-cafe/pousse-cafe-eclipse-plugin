@@ -57,7 +57,7 @@ public class GenerateCodeHandler extends AbstractHandler {
             var newModel = buildNewModel(project, tree);
             updateCode(project, newModel);
             refreshResources(project);
-        } catch (Exception e) {
+        } finally {
             window.getShell().setEnabled(true);
         }
     }

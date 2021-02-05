@@ -12,7 +12,6 @@ import org.eclipse.core.resources.IFile;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.jdt.core.IField;
 import org.eclipse.jdt.core.IType;
-import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.core.JavaModelException;
 import poussecafe.source.Source;
 import poussecafe.source.analysis.ClassResolver;
@@ -164,10 +163,7 @@ public class JdtResolvedClass implements ResolvedClass {
                 .map(IFile.class::cast)
                 .findFirst();
         if(file.isPresent()) {
-            return Optional.of(new ResourceSource.Builder()
-                    .project(JavaCore.create(file.get().getProject()))
-                    .file(file.get())
-                    .build());
+            return Optional.of(new ResourceSource(file.get()));
         } else {
             return Optional.empty();
         }

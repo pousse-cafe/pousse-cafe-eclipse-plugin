@@ -1,6 +1,9 @@
 package poussecafe.eclipse.plugin.builder;
 
+import java.io.Serializable;
 import org.eclipse.core.resources.IFile;
+import org.eclipse.core.runtime.IPath;
+import org.eclipse.core.runtime.Path;
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.core.JavaCore;
@@ -9,60 +12,54 @@ import poussecafe.source.Source;
 
 import static java.util.Objects.requireNonNull;
 
-public class ResourceSource implements Source {
+@SuppressWarnings("serial")
+public class ResourceSource extends Source implements Serializable {
 
     @Override
     public void configure(ASTParser parser) {
-        parser.setSource(compilationUnit);
+        parser.setSource(resourceCompilationUnit());
     }
 
-    private ICompilationUnit compilationUnit;
-
-    public ICompilationUnit compilationUnit() {
+    public ICompilationUnit resourceCompilationUnit() {
+        connectedOrThrow();
+        if(compilationUnit == null) {
+            compilationUnit = (ICompilationUnit) JavaCore.create(file(), project);
+        }
         return compilationUnit;
     }
 
-    @Override
-    public String id() {
-        return id;
+    private void connectedOrThrow() {
+        if(project == null) {
+            throw new IllegalStateException("Connect resource to a project");
+        }
     }
 
-    private String id;
+    private transient ICompilationUnit compilationUnit;
 
     public IFile file() {
+        connectedOrThrow();
+        if(file == null) {
+            IPath path = new Path(id());
+            file = project.getProject().getFile(path);
+        }
         return file;
     }
 
-    private IFile file;
+    private transient IFile file;
 
-    public static class Builder {
-
-        public ResourceSource build() {
-            requireNonNull(source.file);
-            source.id = source.file.getFullPath().toString();
-
-            requireNonNull(project);
-            source.compilationUnit = (ICompilationUnit) JavaCore.create(source.file, project);
-
-            return source;
-        }
-
-        public Builder file(IFile file) {
-            source.file = file;
-            return this;
-        }
-
-        private ResourceSource source = new ResourceSource();
-
-        public Builder project(IJavaProject project) {
-            this.project = project;
-            return this;
-        }
-
-        private IJavaProject project;
+    @Override
+    public void connect(Object project) {
+        requireNonNull(project);
+        this.project = (IJavaProject) project;
     }
 
-    private ResourceSource() {
+    private transient IJavaProject project;
+
+    public ResourceSource(IFile file) {
+        super(file.getProjectRelativePath().toString());
+    }
+
+    ResourceSource() {
 
     }
 }

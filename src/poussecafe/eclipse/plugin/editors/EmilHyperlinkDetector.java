@@ -123,7 +123,8 @@ public class EmilHyperlinkDetector extends AbstractHyperlinkDetector {
             if(sourceContainer.isPresent()
                     && sourceContainer.get().isPresent()) {
                 var source = (ResourceSource) sourceContainer.get().orElseThrow();
-                var compilationUnit = source.compilationUnit();
+                source.connect(editor.getPousseCafeProject().getJavaProject());
+                var compilationUnit = source.resourceCompilationUnit();
                 var member = memberExtractor.apply(compilationUnit);
                 if(member.isPresent()
                         && member.get().exists()) {

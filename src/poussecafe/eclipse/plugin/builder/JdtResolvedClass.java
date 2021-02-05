@@ -8,6 +8,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.jdt.core.IField;
@@ -22,6 +23,7 @@ import static java.util.Collections.emptyList;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
+import static poussecafe.util.Equality.referenceEquals;
 
 public class JdtResolvedClass implements ResolvedClass {
 
@@ -222,5 +224,17 @@ public class JdtResolvedClass implements ResolvedClass {
 
     private JdtResolvedClass() {
 
+    }
+
+    @Override
+    public int hashCode() {
+        return jdtName.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        return referenceEquals(this, obj).orElse(other -> new EqualsBuilder()
+                .append(jdtName, other.jdtName)
+                .build());
     }
 }

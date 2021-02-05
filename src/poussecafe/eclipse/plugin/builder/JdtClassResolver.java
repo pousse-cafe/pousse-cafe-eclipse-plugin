@@ -149,7 +149,8 @@ public class JdtClassResolver extends ClassResolver {
         var typeErasure = Signature.getTypeErasure(typeSignature);
         if(typeErasure.charAt(0) == Signature.C_UNRESOLVED) {
             var resolvedName = type.resolveType(Signature.toString(typeErasure));
-            if(resolvedName.length > 0) {
+            if(resolvedName != null
+                    && resolvedName.length > 0) {
                 return Signature.toQualifiedName(resolvedName[0]);
             } else {
                 return Signature.toString(typeErasure);

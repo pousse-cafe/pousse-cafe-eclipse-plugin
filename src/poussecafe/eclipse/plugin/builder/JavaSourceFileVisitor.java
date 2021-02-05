@@ -9,7 +9,8 @@ public abstract class JavaSourceFileVisitor implements IResourceVisitor {
 
     @Override
     public boolean visit(IResource resource) {
-        if(Resources.isJavaSourceFile(resource)) {
+        if(Resources.isJavaSourceFile(resource)
+                && Resources.isHealthy(resource)) {
             IFile file = (IFile) resource;
             var source = new ResourceSource(file);
             source.connect(javaProject);

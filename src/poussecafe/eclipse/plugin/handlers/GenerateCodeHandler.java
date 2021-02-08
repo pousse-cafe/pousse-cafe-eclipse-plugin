@@ -38,8 +38,7 @@ public class GenerateCodeHandler extends AbstractHandler {
                     if(project.model().isEmpty()) {
                         MessageDialog.openWarning(window.getShell(), DIALOG_TITLE, "Build the project first or wait for current build to finish.");
                     } else {
-                        generateCode(window, project, tree);
-                        MessageDialog.openInformation(window.getShell(), DIALOG_TITLE, "Code successfully generated.");
+                        tryGenerateCode(window, tree, project);
                     }
                 } else {
                     MessageDialog.openError(window.getShell(), DIALOG_TITLE, "Cannot generated code, invalid EMIL.");
@@ -49,6 +48,23 @@ public class GenerateCodeHandler extends AbstractHandler {
             }
         }
         return null;
+    }
+
+    private void tryGenerateCode(IWorkbenchWindow window, Tree tree, PousseCafeProject project) {
+        try {
+            boolean proceed;
+            if(project.hasProblems()) {
+                proceed = MessageDialog.openQuestion(window.getShell(), DIALOG_TITLE, "It is recommanded to fix problems before generating code, do you want to continue?");
+            } else {
+                proceed = true;
+            }
+            if(proceed) {
+                generateCode(window, project, tree);
+                MessageDialog.openInformation(window.getShell(), DIALOG_TITLE, "Code successfully generated.");
+            }
+        } catch (CoreException e) {
+            MessageDialog.openError(window.getShell(), DIALOG_TITLE, "Failed to generate code.");
+        }
     }
 
     private void generateCode(IWorkbenchWindow window, PousseCafeProject project, Tree tree) {

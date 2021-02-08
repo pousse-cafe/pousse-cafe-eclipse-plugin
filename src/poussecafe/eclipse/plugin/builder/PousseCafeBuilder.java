@@ -60,7 +60,7 @@ public class PousseCafeBuilder extends IncrementalProjectBuilder {
         }
     }
 
-    private static final String MARKER_TYPE = "poussecafe.eclipse.plugin.pousseCafeProblem";
+    public static final String MARKER_TYPE = "poussecafe.eclipse.plugin.pousseCafeProblem";
 
     private ILog platformLogger = Platform.getLog(getClass());
 

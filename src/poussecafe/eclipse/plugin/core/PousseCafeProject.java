@@ -174,4 +174,9 @@ public class PousseCafeProject implements IAdaptable {
         file.refreshLocal(IResource.DEPTH_ZERO, null);
         return file;
     }
+
+    public boolean hasProblems() throws CoreException {
+        var problems = project.getProject().findMarkers(PousseCafeBuilder.MARKER_TYPE, true, IResource.DEPTH_INFINITE);
+        return problems != null && problems.length > 0;
+    }
 }

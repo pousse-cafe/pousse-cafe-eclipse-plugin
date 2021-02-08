@@ -17,6 +17,7 @@ import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.jdt.core.IJavaProject;
 import poussecafe.eclipse.plugin.builder.JdtClassResolver;
 import poussecafe.eclipse.plugin.builder.PousseCafeBuilder;
+import poussecafe.eclipse.plugin.builder.PousseCafeNature;
 import poussecafe.eclipse.plugin.properties.PousseCafeProjectPropertyPage;
 import poussecafe.source.analysis.ClassResolver;
 import poussecafe.source.model.Model;
@@ -27,6 +28,9 @@ public class PousseCafeProject implements IAdaptable {
 
     PousseCafeProject(IJavaProject project) {
         requireNonNull(project);
+        if(!PousseCafeNature.isPousseCafeProject(project)) {
+            throw new IllegalArgumentException("Not a Pousse-Café project");
+        }
         this.project = project;
     }
 

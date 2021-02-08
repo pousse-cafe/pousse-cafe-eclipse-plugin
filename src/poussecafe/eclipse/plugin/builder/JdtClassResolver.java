@@ -7,9 +7,9 @@ import java.util.Map;
 import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.core.IType;
 import org.eclipse.jdt.core.JavaModelException;
-import org.eclipse.jdt.core.Signature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import poussecafe.eclipse.plugin.core.JavaNameResolver;
 import poussecafe.eclipse.plugin.core.JavaSearchEngine;
 import poussecafe.source.analysis.ClassResolver;
 import poussecafe.source.analysis.Name;
@@ -121,7 +121,8 @@ public class JdtClassResolver extends ClassResolver {
     private boolean computeInstanceOf(IType type, JdtResolvedClass supertype) throws JavaModelException {
         if(supertype.isInterface()) {
             for(String superinterfaceSignature : type.getSuperInterfaceTypeSignatures()) {
-                var superinterfaceName = convertSignatureIntoName(superinterfaceSignature, type);
+                var superinterfaceName = JavaNameResolver.resolveSignature(type,
+                        superinterfaceSignature);
                 var superinterface = loadClass(new Name(superinterfaceName))
                         .map(JdtResolvedClass.class::cast);
                 if(superinterface.isPresent()
@@ -134,7 +135,7 @@ public class JdtClassResolver extends ClassResolver {
         var superclassSignature = type.getSuperclassTypeSignature();
         if(superclassSignature != null
                 && !superclassSignature.equals("java.lang.Object")) {
-            var superclassName = convertSignatureIntoName(superclassSignature, type);
+            var superclassName = JavaNameResolver.resolveSignature(type, superclassSignature);
             var superclass = loadClass(new Name(superclassName)).map(JdtResolvedClass.class::cast);
             if(superclass.isPresent()
                     && instanceOf(superclass.get(), supertype)) {
@@ -143,20 +144,5 @@ public class JdtClassResolver extends ClassResolver {
         }
 
         return false;
-    }
-
-    private String convertSignatureIntoName(String typeSignature, IType type) throws JavaModelException, IllegalArgumentException {
-        var typeErasure = Signature.getTypeErasure(typeSignature);
-        if(typeErasure.charAt(0) == Signature.C_UNRESOLVED) {
-            var resolvedName = type.resolveType(Signature.toString(typeErasure));
-            if(resolvedName != null
-                    && resolvedName.length > 0) {
-                return Signature.toQualifiedName(resolvedName[0]);
-            } else {
-                return Signature.toString(typeErasure);
-            }
-        } else {
-            return Signature.toString(typeErasure);
-        }
     }
 }

@@ -26,6 +26,7 @@ import poussecafe.eclipse.plugin.actions.OpenJavaEditorAction;
 import poussecafe.eclipse.plugin.builder.ResourceSource;
 import poussecafe.eclipse.plugin.core.JavaNameResolver;
 import poussecafe.eclipse.plugin.core.PousseCafeCore;
+import poussecafe.eclipse.plugin.core.PousseCafeProject;
 import poussecafe.eclipse.plugin.editors.ActionHyperlink;
 import poussecafe.source.analysis.ClassName;
 import poussecafe.source.analysis.CompilationUnitResolver;
@@ -40,25 +41,36 @@ public class MessageListenerHyperlinkDetector extends AbstractHyperlinkDetector 
     @Override
     public IHyperlink[] detectHyperlinks(ITextViewer textViewer, IRegion region, boolean canShowMultipleHyperlinks) {
         try {
-            IMethod methodForRegion = findMethodForRegion(region);
-            if(methodForRegion == null) {
-                return noResult();
-            } else {
-                return methodLinks(region, methodForRegion);
-            }
+            var links = new ArrayList<IHyperlink>();
+            links.addAll(detectLinksOfListener(region));
+            links.addAll(detectLinksOfMessage(region));
+            return arrayOrNull(links);
         } catch (JavaModelException e) {
             logger.error("Unable to detect hyperlinks", e);
             return noResult();
         }
     }
 
+    private List<IHyperlink> detectLinksOfListener(IRegion region) throws JavaModelException {
+        IMethod methodForRegion = findMethodForRegion(region);
+        if(methodForRegion == null) {
+            return emptyList();
+        } else {
+            return methodLinks(region, methodForRegion);
+        }
+    }
+
     private IMethod findMethodForRegion(IRegion region) throws JavaModelException {
+        IType primaryType = compilationUnitPrimaryType();
+        return findMethodForRegion(primaryType, region);
+    }
+
+    private IType compilationUnitPrimaryType() {
         ITextEditor editor = getAdapter(ITextEditor.class);
         IFileEditorInput input = (IFileEditorInput) editor.getEditorInput();
         IFile file = input.getFile();
         ICompilationUnit compilationUnit = (ICompilationUnit) JavaCore.create(file);
-        IType primaryType = compilationUnit.findPrimaryType();
-        return findMethodForRegion(primaryType, region);
+        return compilationUnit.findPrimaryType();
     }
 
     private IMethod findMethodForRegion(IType type, IRegion region) throws JavaModelException {
@@ -106,26 +118,18 @@ public class MessageListenerHyperlinkDetector extends AbstractHyperlinkDetector 
         }
     }
 
-    private IHyperlink[] methodLinks(IRegion target, IMethod method) throws JavaModelException {
+    private List<IHyperlink> methodLinks(IRegion target, IMethod method) throws JavaModelException {
         IJavaProject javaProject = method.getJavaProject();
         var pousseCafeProject = PousseCafeCore.getProject(javaProject);
         if(pousseCafeProject.model().isEmpty()) {
-            return noResult();
+            return emptyList();
         }
 
         var links = new ArrayList<IHyperlink>();
         if(isMessageListener(method)
                 && targetIsConsumedMessageName(target, method)) {
             var messageName = consumedMessageName(method);
-            var producers = pousseCafeProject.model().orElseThrow().messageListeners().stream()
-                    .filter(listener -> listener.producedEvents().stream()
-                        .anyMatch(producedEvent -> producedEvent.message().name().equals(messageName)))
-                    .collect(toList());
-            links.addAll(buildLinksToListeners(
-                        region(method),
-                        javaProject,
-                        producers,
-                        "Producer"));
+            links.addAll(producers(pousseCafeProject, messageName, region(method)));
         }
 
         IAnnotation producedEvent = findProducesEventAnnotationForTarget(target, method);
@@ -134,17 +138,10 @@ public class MessageListenerHyperlinkDetector extends AbstractHyperlinkDetector 
             if(producedEventMemberValuePair.getValueKind() == IMemberValuePair.K_CLASS) {
                 var messageTypeName = (String) producedEventMemberValuePair.getValue();
                 var messageName = new ClassName(messageTypeName).simple();
-                var consumers = pousseCafeProject.model().orElseThrow().messageListeners().stream()
-                        .filter(listener -> listener.consumedMessage().name().equals(messageName))
-                        .collect(toList());
-                links.addAll(buildLinksToListeners(
-                        region(method),
-                        javaProject,
-                        consumers,
-                        "Consumer"));
+                links.addAll(consumers(pousseCafeProject, messageName, region(method)));
             }
         }
-        return arrayOrNull(links);
+        return links;
     }
 
     private boolean targetIsConsumedMessageName(IRegion region, IMethod methodForRegion) throws JavaModelException {
@@ -171,6 +168,25 @@ public class MessageListenerHyperlinkDetector extends AbstractHyperlinkDetector 
         return JavaNameResolver.simpleName(method.getParameterTypes()[0]);
     }
 
+    private List<IHyperlink> producers(PousseCafeProject pousseCafeProject, String messageName, IRegion linkRegion) throws JavaModelException {
+        var producers = pousseCafeProject.model().orElseThrow().messageListeners().stream()
+                .filter(listener -> listener.producedEvents().stream()
+                        .anyMatch(producedEvent -> producedEvent.message().name().equals(messageName)))
+                .collect(toList());
+        return buildLinksToListeners(linkRegion, pousseCafeProject.getJavaProject(), producers, "Producer");
+    }
+
+    private List<IHyperlink> consumers(PousseCafeProject pousseCafeProject, String messageName, IRegion linkRegion) throws JavaModelException {
+        var consumers = pousseCafeProject.model().orElseThrow().messageListeners().stream()
+                .filter(listener -> listener.consumedMessage().name().equals(messageName))
+                .collect(toList());
+        return buildLinksToListeners(
+                linkRegion,
+                pousseCafeProject.getJavaProject(),
+                consumers,
+                "Consumer");
+    }
+
     private IRegion region(IMethod methodForRegion) throws JavaModelException {
         ISourceRange sourceRange;
         if(methodForRegion.getParameters().length == 1) {
@@ -178,6 +194,10 @@ public class MessageListenerHyperlinkDetector extends AbstractHyperlinkDetector 
         } else {
             sourceRange = methodForRegion.getNameRange();
         }
+        return region(sourceRange);
+    }
+
+    private IRegion region(ISourceRange sourceRange) {
         return new Region(sourceRange.getOffset(), sourceRange.getLength());
     }
 
@@ -242,5 +262,59 @@ public class MessageListenerHyperlinkDetector extends AbstractHyperlinkDetector 
             }
         }
         return null;
+    }
+
+    private List<IHyperlink> detectLinksOfMessage(IRegion region) throws JavaModelException, IllegalArgumentException {
+        IType primaryType = compilationUnitPrimaryType();
+
+        IJavaProject javaProject = primaryType.getJavaProject();
+        var pousseCafeProject = PousseCafeCore.getProject(javaProject);
+        if(pousseCafeProject.model().isEmpty()) {
+            return emptyList();
+        }
+
+        if(isMessageDefinition(primaryType)) {
+            var nameSourceRange = primaryType.getNameRange();
+            var messageName = primaryType.getElementName();
+            var links = new ArrayList<IHyperlink>();
+            links.addAll(producers(pousseCafeProject, messageName, region(nameSourceRange)));
+            links.addAll(consumers(pousseCafeProject, messageName, region(nameSourceRange)));
+            return links;
+        } else {
+            return emptyList();
+        }
+    }
+
+    private boolean isMessageDefinition(IType type) throws JavaModelException, IllegalArgumentException {
+        if(CompilationUnitResolver.MESSAGE_CLASS.equals(type.getFullyQualifiedName('.'))) {
+            return true;
+        }
+
+        var javaProject = type.getJavaProject();
+        for(String superinterfaceSignature : type.getSuperInterfaceTypeSignatures()) {
+            var superinterfaceName = JavaNameResolver.resolveSignature(type,
+                    superinterfaceSignature);
+            var superinterface = javaProject.findType(superinterfaceName);
+            if(superinterface != null
+                    && isMessageDefinition(superinterface)) {
+                return true;
+            }
+        }
+
+        var superclassSignature = type.getSuperclassTypeSignature();
+        if(superclassSignature != null) {
+            var superclassName = JavaNameResolver.resolveSignature(type, superclassSignature);
+            if(superclassName.equals("java.lang.Object")) {
+                return false;
+            }
+
+            var superclass = javaProject.findType(superclassName);
+            if(superclass != null
+                    && isMessageDefinition(superclass)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

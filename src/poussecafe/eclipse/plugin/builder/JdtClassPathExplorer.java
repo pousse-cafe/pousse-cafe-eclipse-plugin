@@ -5,7 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 import org.eclipse.jdt.core.IType;
-import poussecafe.source.analysis.Name;
+import poussecafe.source.analysis.ClassName;
 import poussecafe.source.analysis.ResolvedClass;
 import poussecafe.source.validation.ClassPathExplorer;
 
@@ -16,7 +16,7 @@ import static java.util.stream.Collectors.toSet;
 public class JdtClassPathExplorer implements ClassPathExplorer {
 
     @Override
-    public Set<ResolvedClass> getSubTypesOf(Name superTypeName) {
+    public Set<ResolvedClass> getSubTypesOf(ClassName superTypeName) {
         var resolvedClass = classResolver.loadClass(superTypeName).map(JdtResolvedClass.class::cast);
         if(resolvedClass.isPresent()) {
             var subTypes = new HashMap<String, List<IType>>();

@@ -20,7 +20,7 @@ import poussecafe.eclipse.plugin.builder.PousseCafeBuilder;
 import poussecafe.eclipse.plugin.builder.PousseCafeNature;
 import poussecafe.eclipse.plugin.properties.PousseCafeProjectPropertyPage;
 import poussecafe.source.analysis.ClassResolver;
-import poussecafe.source.model.Model;
+import poussecafe.source.model.SourceModel;
 
 import static java.util.Objects.requireNonNull;
 
@@ -54,7 +54,7 @@ public class PousseCafeProject implements IAdaptable {
 
     private List<ChangeListener> listeners = new ArrayList<>();
 
-    private Model model;
+    private SourceModel model;
 
     private synchronized void triggerPousseCafeBuilder() {
         if(!buildInProgress) {
@@ -83,7 +83,7 @@ public class PousseCafeProject implements IAdaptable {
         listeners.remove(listener);
     }
 
-    public void refresh(Model model) {
+    public void refresh(SourceModel model) {
         synchronized(this) {
             requireNonNull(model);
             this.model = model;
@@ -95,7 +95,7 @@ public class PousseCafeProject implements IAdaptable {
         }
     }
 
-    public synchronized Optional<Model> model() {
+    public synchronized Optional<SourceModel> model() {
         return Optional.ofNullable(model);
     }
 

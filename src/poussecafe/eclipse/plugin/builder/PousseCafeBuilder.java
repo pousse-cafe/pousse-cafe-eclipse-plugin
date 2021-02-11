@@ -1,10 +1,8 @@
 package poussecafe.eclipse.plugin.builder;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.core.resources.IProject;
@@ -21,6 +19,7 @@ import org.eclipse.jdt.core.JavaCore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import poussecafe.eclipse.plugin.core.PousseCafeCore;
+import poussecafe.eclipse.plugin.core.PousseCafeProject;
 import poussecafe.source.SourceScanner;
 import poussecafe.source.analysis.SourceModelBuilderVisitor;
 import poussecafe.source.analysis.TypeResolvingCompilationUnitVisitor;
@@ -28,6 +27,9 @@ import poussecafe.source.validation.ValidationMessage;
 import poussecafe.source.validation.ValidationMessageType;
 import poussecafe.source.validation.ValidationModelBuilderVisitor;
 import poussecafe.source.validation.Validator;
+import poussecafe.source.validation.types.InteralStorageTypesValidator;
+import poussecafe.spring.jpa.storage.source.JpaTypesValidator;
+import poussecafe.spring.mongo.storage.source.MongoTypesValidator;
 
 public class PousseCafeBuilder extends IncrementalProjectBuilder {
 
@@ -39,9 +41,8 @@ public class PousseCafeBuilder extends IncrementalProjectBuilder {
 
     private void clearBuilderState() {
         scanner = null;
-        files.clear();
         latestBuilderState = null;
-        var project = PousseCafeCore.getProject(javaProject());
+        var project = pousseCafeProject();
         try {
             var stateFile = project.builderStateFile();
             if(stateFile.exists()) {
@@ -112,13 +113,10 @@ public class PousseCafeBuilder extends IncrementalProjectBuilder {
         try {
             long start = System.currentTimeMillis();
             logger.debug("Trying to load persited state");
-            var project = PousseCafeCore.getProject(javaProject());
+            var project = pousseCafeProject();
             var stateFile = project.builderStateFile();
             if(stateFile.exists()) {
                 latestBuilderState = BuilderState.deserialize(stateFile);
-                for(String file : latestBuilderState.files()) {
-                    files.put(file, getProject().getFile(file));
-                }
                 sourceModelVisitor.loadSerializedState(latestBuilderState.getSourceModelVisitorState());
                 validationVisitor.loadSerializedState(latestBuilderState.getValidationModelVisitorState());
             }
@@ -152,18 +150,23 @@ public class PousseCafeBuilder extends IncrementalProjectBuilder {
     public static final String TRY_INCREMENTAL_FIRST_ARG = "tryIncrementalFirst";
 
     private void incrementalBuild() {
+        logger.info("Starting incremental build...");
         long start = System.currentTimeMillis();
         var delta = getDelta(getProject());
         var updatedResources = relevantDeltas(delta);
         for(IResourceDelta source: updatedResources) {
             var resource = new ResourceSource((IFile) source.getResource());
+            var resourceId = resource.id();
             resource.connect(javaProject());
             if(source.getKind() == IResourceDelta.ADDED
                     || source.getKind() == IResourceDelta.CHANGED) {
+                logger.debug("Including {}", resourceId);
                 includeFile(resource);
+            } else if(source.getKind() == IResourceDelta.REMOVED) {
+                logger.debug("Forgetting {}", resourceId);
+                scanner.forget(resourceId);
             } else {
-                scanner.forget(resource.id());
-                files.remove(resource.id());
+                logger.warn("Unsupported delta kind {} with resource {}", source.getKind(), resourceId);
             }
         }
         long end = System.currentTimeMillis();
@@ -171,6 +174,7 @@ public class PousseCafeBuilder extends IncrementalProjectBuilder {
     }
 
     private void fullBuild(IProgressMonitor monitor) {
+        logger.info("Starting full build...");
         long start = System.currentTimeMillis();
         try {
             getProject().accept(new ResourceVisitor(monitor));
@@ -217,8 +221,6 @@ public class PousseCafeBuilder extends IncrementalProjectBuilder {
 
     private SourceScanner scanner;
 
-    private Map<String, IFile> files = new HashMap<>();
-
     private class ResourceVisitor extends JavaSourceFileVisitor {
 
         ResourceVisitor(IProgressMonitor monitor) {
@@ -239,7 +241,6 @@ public class PousseCafeBuilder extends IncrementalProjectBuilder {
     }
 
     private void includeFile(ResourceSource source) {
-        files.put(source.id(), source.file());
         try {
             scanner.includeSource(source);
         } catch (Exception e) {
@@ -249,13 +250,11 @@ public class PousseCafeBuilder extends IncrementalProjectBuilder {
 
     private void persistBuilderState() {
         latestBuilderState = new BuilderState();
-        latestBuilderState.addFiles(files);
         latestBuilderState.setSourceModelVisitorState(sourceModelVisitor.getSerializableState());
         latestBuilderState.setValidationModelVisitorState(validationVisitor.getSerializableState());
 
-        var project = PousseCafeCore.getProject(javaProject());
         try {
-            var stateFile = project.builderStateFile();
+            var stateFile = pousseCafeProject().builderStateFile();
             latestBuilderState.serialize(stateFile);
         } catch (Exception e) {
             platformLogger.info("Could not serialize latest build state", e);
@@ -264,25 +263,47 @@ public class PousseCafeBuilder extends IncrementalProjectBuilder {
     }
 
     private void validateProject() {
-        validator = new Validator(validationVisitor.buildModel(),
-                classResolver,
-                Optional.of(new JdtClassPathExplorer(classResolver)));
+        var builder = new Validator.Builder()
+                .model(validationVisitor.buildModel())
+                .classResolver(classResolver)
+                .classPathExplorer(new JdtClassPathExplorer(classResolver));
+
+        if(pousseCafeProject().usesInternalStorage()) {
+            builder.storageTypesValidator(new InteralStorageTypesValidator());
+        }
+        if(pousseCafeProject().usesSpringJpaStorage()) {
+            builder.storageTypesValidator(new JpaTypesValidator());
+        }
+        if(pousseCafeProject().usesSpringMongoStorage()) {
+            builder.storageTypesValidator(new MongoTypesValidator());
+        }
+        validator = builder.build();
         validator.validate();
     }
 
     private Validator validator;
 
     private void refreshPousseCafeProject() {
-        var pousseCafeProject = PousseCafeCore.getProject(javaProject);
-        pousseCafeProject.refresh(sourceModelVisitor.buildModel());
+        pousseCafeProject().refresh(sourceModelVisitor.buildModel());
     }
+
+    private PousseCafeProject pousseCafeProject() {
+        if(pousseCafeProject == null) {
+            pousseCafeProject = PousseCafeCore.getProject(javaProject());
+        }
+        return pousseCafeProject;
+    }
+
+    private PousseCafeProject pousseCafeProject;
 
     private void refreshMarkers() {
         deleteProjectPousseCafeMarkers();
         var result = validator.result();
         for(ValidationMessage message : result.messages()) {
             var location = message.location();
-            var file = files.get(location.source().id());
+            var resourceSource = (ResourceSource) location.source();
+            resourceSource.connect(javaProject());
+            var file = resourceSource.file();
             if(file != null) {
                 addMarker(file, message.message(), location.line(), severity(message.type()));
             } else {

@@ -3,7 +3,7 @@ package poussecafe.eclipse.plugin.core;
 import org.eclipse.jdt.core.IType;
 import org.eclipse.jdt.core.JavaModelException;
 import org.eclipse.jdt.core.Signature;
-import poussecafe.source.analysis.Name;
+import poussecafe.source.analysis.ClassName;
 
 public class JavaNameResolver {
 
@@ -34,7 +34,7 @@ public class JavaNameResolver {
     public static String simpleName(String typeSignature) {
         var typeErasure = Signature.getTypeErasure(typeSignature);
         var nameString = Signature.toString(typeErasure);
-        return new Name(nameString).simple();
+        return new ClassName(nameString).simple();
     }
 
     private JavaNameResolver() {

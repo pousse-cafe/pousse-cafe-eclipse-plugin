@@ -17,9 +17,9 @@ import poussecafe.source.emil.parser.TreeParser;
 import poussecafe.source.generation.CoreCodeGenerator;
 import poussecafe.source.generation.internal.InternalStorageAdaptersCodeGenerator;
 import poussecafe.source.model.Aggregate;
-import poussecafe.source.model.Model;
-import poussecafe.spring.jpa.storage.codegeneration.JpaStorageAdaptersCodeGenerator;
-import poussecafe.spring.mongo.storage.codegeneration.MongoStorageAdaptersCodeGenerator;
+import poussecafe.source.model.SourceModel;
+import poussecafe.spring.jpa.storage.source.JpaStorageAdaptersCodeGenerator;
+import poussecafe.spring.mongo.storage.source.MongoStorageAdaptersCodeGenerator;
 
 public class GenerateCodeHandler extends AbstractHandler {
 
@@ -78,7 +78,7 @@ public class GenerateCodeHandler extends AbstractHandler {
         }
     }
 
-    private Model buildNewModel(PousseCafeProject project, Tree tree) {
+    private SourceModel buildNewModel(PousseCafeProject project, Tree tree) {
         var analyzer = new TreeAnalyzer.Builder()
                 .tree(tree)
                 .basePackage(project.getBasePackage())
@@ -87,7 +87,7 @@ public class GenerateCodeHandler extends AbstractHandler {
         return analyzer.model();
     }
 
-    private void updateCode(PousseCafeProject project, Model newModel) {
+    private void updateCode(PousseCafeProject project, SourceModel newModel) {
         var generatorBuilder = new CoreCodeGenerator.Builder()
                 .sourceDirectory(project.getSourceFolder())
                 .classResolver(project.buildClassResolver());

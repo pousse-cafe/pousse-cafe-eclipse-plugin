@@ -27,8 +27,8 @@ import poussecafe.eclipse.plugin.builder.ResourceSource;
 import poussecafe.eclipse.plugin.core.JavaNameResolver;
 import poussecafe.eclipse.plugin.core.PousseCafeCore;
 import poussecafe.eclipse.plugin.editors.ActionHyperlink;
+import poussecafe.source.analysis.ClassName;
 import poussecafe.source.analysis.CompilationUnitResolver;
-import poussecafe.source.analysis.Name;
 import poussecafe.source.model.MessageListener;
 
 import static java.util.Collections.emptyList;
@@ -51,64 +51,6 @@ public class MessageListenerHyperlinkDetector extends AbstractHyperlinkDetector 
             return noResult();
         }
     }
-
-    private IHyperlink[] noResult() {
-        return arrayOrNull(emptyList());
-    }
-
-    private IHyperlink[] arrayOrNull(List<IHyperlink> links) {
-        if(links.isEmpty()) {
-            return null; // NOSONAR - empty arrays are invalid here
-        } else {
-            var array = new IHyperlink[links.size()];
-            return links.toArray(array);
-        }
-    }
-
-    private IHyperlink[] methodLinks(IRegion target, IMethod method) throws JavaModelException {
-        var links = new ArrayList<IHyperlink>();
-        IJavaProject javaProject = method.getJavaProject();
-        var pousseCafeProject = PousseCafeCore.getProject(javaProject);
-
-        if(isMessageListener(method)
-                && targetIsConsumedMessageName(target, method)) {
-            var messageName = consumedMessageName(method);
-            var producers = pousseCafeProject.model().orElseThrow().messageListeners().stream()
-                    .filter(listener -> listener.producedEvents().stream()
-                        .anyMatch(producedEvent -> producedEvent.message().name().equals(messageName)))
-                    .collect(toList());
-            links.addAll(buildLinksToListeners(
-                        region(method),
-                        javaProject,
-                        producers,
-                        "Producer"));
-        }
-
-        IAnnotation producedEvent = findProducesEventAnnotationForTarget(target, method);
-        if(producedEvent != null) {
-            var producedEventMemberValuePair = producedEvent.getMemberValuePairs()[0];
-            if(producedEventMemberValuePair.getValueKind() == IMemberValuePair.K_CLASS) {
-                var messageTypeName = (String) producedEventMemberValuePair.getValue();
-                var messageName = new Name(messageTypeName).simple();
-                var consumers = pousseCafeProject.model().orElseThrow().messageListeners().stream()
-                        .filter(listener -> listener.consumedMessage().name().equals(messageName))
-                        .collect(toList());
-                links.addAll(buildLinksToListeners(
-                        region(method),
-                        javaProject,
-                        consumers,
-                        "Consumer"));
-            }
-        }
-        return arrayOrNull(links);
-    }
-
-    private boolean targetIsConsumedMessageName(IRegion region, IMethod methodForRegion) throws JavaModelException {
-        return methodForRegion.getParameters().length == 1
-                && rangeContainsRegion(methodForRegion.getParameters()[0].getSourceRange(), region);
-    }
-
-    private Logger logger = LoggerFactory.getLogger(getClass());
 
     private IMethod findMethodForRegion(IRegion region) throws JavaModelException {
         ITextEditor editor = getAdapter(ITextEditor.class);
@@ -151,6 +93,67 @@ public class MessageListenerHyperlinkDetector extends AbstractHyperlinkDetector 
         return range.getOffset() + range.getLength();
     }
 
+    private IHyperlink[] noResult() {
+        return arrayOrNull(emptyList());
+    }
+
+    private IHyperlink[] arrayOrNull(List<IHyperlink> links) {
+        if(links.isEmpty()) {
+            return null; // NOSONAR - empty arrays are invalid here
+        } else {
+            var array = new IHyperlink[links.size()];
+            return links.toArray(array);
+        }
+    }
+
+    private IHyperlink[] methodLinks(IRegion target, IMethod method) throws JavaModelException {
+        IJavaProject javaProject = method.getJavaProject();
+        var pousseCafeProject = PousseCafeCore.getProject(javaProject);
+        if(pousseCafeProject.model().isEmpty()) {
+            return noResult();
+        }
+
+        var links = new ArrayList<IHyperlink>();
+        if(isMessageListener(method)
+                && targetIsConsumedMessageName(target, method)) {
+            var messageName = consumedMessageName(method);
+            var producers = pousseCafeProject.model().orElseThrow().messageListeners().stream()
+                    .filter(listener -> listener.producedEvents().stream()
+                        .anyMatch(producedEvent -> producedEvent.message().name().equals(messageName)))
+                    .collect(toList());
+            links.addAll(buildLinksToListeners(
+                        region(method),
+                        javaProject,
+                        producers,
+                        "Producer"));
+        }
+
+        IAnnotation producedEvent = findProducesEventAnnotationForTarget(target, method);
+        if(producedEvent != null) {
+            var producedEventMemberValuePair = producedEvent.getMemberValuePairs()[0];
+            if(producedEventMemberValuePair.getValueKind() == IMemberValuePair.K_CLASS) {
+                var messageTypeName = (String) producedEventMemberValuePair.getValue();
+                var messageName = new ClassName(messageTypeName).simple();
+                var consumers = pousseCafeProject.model().orElseThrow().messageListeners().stream()
+                        .filter(listener -> listener.consumedMessage().name().equals(messageName))
+                        .collect(toList());
+                links.addAll(buildLinksToListeners(
+                        region(method),
+                        javaProject,
+                        consumers,
+                        "Consumer"));
+            }
+        }
+        return arrayOrNull(links);
+    }
+
+    private boolean targetIsConsumedMessageName(IRegion region, IMethod methodForRegion) throws JavaModelException {
+        return methodForRegion.getParameters().length == 1
+                && rangeContainsRegion(methodForRegion.getParameters()[0].getSourceRange(), region);
+    }
+
+    private Logger logger = LoggerFactory.getLogger(getClass());
+
     private boolean isMessageListener(IMethod method) throws JavaModelException {
         IType declaringType = method.getDeclaringType();
         for(IAnnotation annotation : method.getAnnotations()) {
@@ -169,7 +172,12 @@ public class MessageListenerHyperlinkDetector extends AbstractHyperlinkDetector 
     }
 
     private IRegion region(IMethod methodForRegion) throws JavaModelException {
-        var sourceRange = methodForRegion.getParameters()[0].getSourceRange();
+        ISourceRange sourceRange;
+        if(methodForRegion.getParameters().length == 1) {
+            sourceRange = methodForRegion.getParameters()[0].getSourceRange();
+        } else {
+            sourceRange = methodForRegion.getNameRange();
+        }
         return new Region(sourceRange.getOffset(), sourceRange.getLength());
     }
 

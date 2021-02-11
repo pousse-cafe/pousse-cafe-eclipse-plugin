@@ -11,8 +11,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import poussecafe.eclipse.plugin.core.JavaNameResolver;
 import poussecafe.eclipse.plugin.core.JavaSearchEngine;
+import poussecafe.source.analysis.ClassName;
 import poussecafe.source.analysis.ClassResolver;
-import poussecafe.source.analysis.Name;
 
 import static java.util.Arrays.asList;
 import static java.util.Objects.requireNonNull;
@@ -33,7 +33,7 @@ public class JdtClassResolver extends ClassResolver {
         try {
             var type = project.findType(name);
             if(type == null) {
-                return searchType(new Name(name));
+                return searchType(new ClassName(name));
             } else {
                 return asList(type);
             }
@@ -42,13 +42,13 @@ public class JdtClassResolver extends ClassResolver {
         }
     }
 
-    private List<IType> searchType(Name typeName) {
+    private List<IType> searchType(ClassName typeName) {
         return searchResults.computeIfAbsent(typeName, this::doSearchType);
     }
 
-    private Map<Name, List<IType>> searchResults = new HashMap<>();
+    private Map<ClassName, List<IType>> searchResults = new HashMap<>();
 
-    private List<IType> doSearchType(Name typeName) {
+    private List<IType> doSearchType(ClassName typeName) {
         logger.debug("Searching for type {}", typeName);
         return searchEngine.searchType(typeName);
     }
@@ -123,7 +123,7 @@ public class JdtClassResolver extends ClassResolver {
             for(String superinterfaceSignature : type.getSuperInterfaceTypeSignatures()) {
                 var superinterfaceName = JavaNameResolver.resolveSignature(type,
                         superinterfaceSignature);
-                var superinterface = loadClass(new Name(superinterfaceName))
+                var superinterface = loadClass(new ClassName(superinterfaceName))
                         .map(JdtResolvedClass.class::cast);
                 if(superinterface.isPresent()
                         && instanceOf(superinterface.get(), supertype)) {
@@ -136,7 +136,7 @@ public class JdtClassResolver extends ClassResolver {
         if(superclassSignature != null
                 && !superclassSignature.equals("java.lang.Object")) {
             var superclassName = JavaNameResolver.resolveSignature(type, superclassSignature);
-            var superclass = loadClass(new Name(superclassName)).map(JdtResolvedClass.class::cast);
+            var superclass = loadClass(new ClassName(superclassName)).map(JdtResolvedClass.class::cast);
             if(superclass.isPresent()
                     && instanceOf(superclass.get(), supertype)) {
                 return true;

@@ -15,8 +15,8 @@ import org.eclipse.jdt.core.IField;
 import org.eclipse.jdt.core.IType;
 import org.eclipse.jdt.core.JavaModelException;
 import poussecafe.source.Source;
+import poussecafe.source.analysis.ClassName;
 import poussecafe.source.analysis.ClassResolver;
-import poussecafe.source.analysis.Name;
 import poussecafe.source.analysis.ResolvedClass;
 
 import static java.util.Collections.emptyList;
@@ -118,13 +118,13 @@ public class JdtResolvedClass implements ResolvedClass {
     }
 
     @Override
-    public Name name() {
+    public ClassName name() {
         return javaName;
     }
 
     private String jdtName;
 
-    private Name javaName;
+    private ClassName javaName;
 
     @Override
     public ClassResolver resolver() {
@@ -157,7 +157,7 @@ public class JdtResolvedClass implements ResolvedClass {
     }
 
     @Override
-    public Optional<Source> source() {
+    public Source source() {
         Optional<IFile> file = types.stream()
                 .filter(type -> type.getResource() != null)
                 .map(IType::getResource)
@@ -165,9 +165,9 @@ public class JdtResolvedClass implements ResolvedClass {
                 .map(IFile.class::cast)
                 .findFirst();
         if(file.isPresent()) {
-            return Optional.of(new ResourceSource(file.get()));
+            return new ResourceSource(file.orElseThrow());
         } else {
-            return Optional.empty();
+            return new TypeSource(types.iterator().next());
         }
     }
 
@@ -195,7 +195,7 @@ public class JdtResolvedClass implements ResolvedClass {
             if(javaNames.size() > 1) {
                 throw new IllegalStateException("Conflicting java names");
             }
-            resolvedClass.javaName = new Name(javaNames.iterator().next());
+            resolvedClass.javaName = new ClassName(javaNames.iterator().next());
 
             Set<String> jdtNames = resolvedClass.types.stream()
                     .map(IType::getFullyQualifiedName)

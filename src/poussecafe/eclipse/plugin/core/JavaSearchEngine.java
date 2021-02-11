@@ -12,11 +12,11 @@ import org.eclipse.jdt.core.search.SearchEngine;
 import org.eclipse.jdt.core.search.SearchPattern;
 import org.eclipse.jdt.core.search.TypeNameMatch;
 import org.eclipse.jdt.core.search.TypeNameMatchRequestor;
-import poussecafe.source.analysis.Name;
+import poussecafe.source.analysis.ClassName;
 
 public class JavaSearchEngine {
 
-    public List<IType> searchType(Name typeName) {
+    public List<IType> searchType(ClassName typeName) {
         var requestor = new SearchRequestor();
         try {
             searchEngine.searchAllTypeNames(

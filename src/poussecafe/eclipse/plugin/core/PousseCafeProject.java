@@ -14,7 +14,9 @@ import org.eclipse.core.runtime.IAdaptable;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.QualifiedName;
 import org.eclipse.core.runtime.jobs.Job;
+import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.IJavaProject;
+import org.eclipse.jdt.core.JavaCore;
 import poussecafe.eclipse.plugin.builder.JdtClassResolver;
 import poussecafe.eclipse.plugin.builder.PousseCafeBuilder;
 import poussecafe.eclipse.plugin.builder.PousseCafeNature;
@@ -25,6 +27,21 @@ import poussecafe.source.model.SourceModel;
 import static java.util.Objects.requireNonNull;
 
 public class PousseCafeProject implements IAdaptable {
+
+    public static boolean isPousseCafeProjectCompilationUnit(IFile file) {
+        ICompilationUnit compilationUnit = (ICompilationUnit) JavaCore.create(file);
+        if(compilationUnit == null) {
+            return false;
+        } else {
+            var type = compilationUnit.findPrimaryType();
+            if(type == null) {
+                return false;
+            } else {
+                var javaProject = type.getJavaProject();
+                return PousseCafeNature.isPousseCafeProject(javaProject);
+            }
+        }
+    }
 
     PousseCafeProject(IJavaProject project) {
         requireNonNull(project);
@@ -48,7 +65,7 @@ public class PousseCafeProject implements IAdaptable {
         if(model().isPresent()) {
             listener.consume(this);
         } else {
-            triggerPousseCafeBuilder();
+            triggerInitialBuild();
         }
     }
 
@@ -56,16 +73,16 @@ public class PousseCafeProject implements IAdaptable {
 
     private SourceModel model;
 
-    private synchronized void triggerPousseCafeBuilder() {
-        if(!buildInProgress) {
-            var job = Job.create("Build Pousse-Café project " + project.getProject().getName(),
+    public synchronized void triggerInitialBuild() {
+        if(!initialBuildTriggered) {
+            var job = Job.create("Initial build of " + project.getProject().getName(),
                     this::buildPousseCafeProject);
             job.schedule();
-            buildInProgress = true;
+            initialBuildTriggered = true;
         }
     }
 
-    private boolean buildInProgress;
+    private boolean initialBuildTriggered;
 
     private void buildPousseCafeProject(IProgressMonitor monitor) throws CoreException {
         var args = new HashMap<String, String>();
@@ -87,7 +104,6 @@ public class PousseCafeProject implements IAdaptable {
         synchronized(this) {
             requireNonNull(model);
             this.model = model;
-            buildInProgress = false;
         }
 
         for(ChangeListener listener : listeners) {

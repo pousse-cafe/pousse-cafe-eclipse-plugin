@@ -40,14 +40,41 @@ public class MessageListenerHyperlinkDetector extends AbstractHyperlinkDetector 
 
     @Override
     public IHyperlink[] detectHyperlinks(ITextViewer textViewer, IRegion region, boolean canShowMultipleHyperlinks) {
+        if(!isEligibleContent()) {
+            return noResult();
+        }
         try {
             var links = new ArrayList<IHyperlink>();
             links.addAll(detectLinksOfListener(region));
             links.addAll(detectLinksOfMessage(region));
             return arrayOrNull(links);
-        } catch (JavaModelException e) {
+        } catch (Exception e) {
             logger.error("Unable to detect hyperlinks", e);
             return noResult();
+        }
+    }
+
+    private boolean isEligibleContent() {
+        return PousseCafeProject.isPousseCafeProjectCompilationUnit(editedFile());
+    }
+
+    private IFile editedFile() {
+        ITextEditor editor = getAdapter(ITextEditor.class);
+        IFileEditorInput input = (IFileEditorInput) editor.getEditorInput();
+        IFile file = input.getFile();
+        return file;
+    }
+
+    private IHyperlink[] noResult() {
+        return arrayOrNull(emptyList());
+    }
+
+    private IHyperlink[] arrayOrNull(List<IHyperlink> links) {
+        if(links.isEmpty()) {
+            return null; // NOSONAR - empty arrays are invalid here
+        } else {
+            var array = new IHyperlink[links.size()];
+            return links.toArray(array);
         }
     }
 
@@ -66,9 +93,7 @@ public class MessageListenerHyperlinkDetector extends AbstractHyperlinkDetector 
     }
 
     private IType compilationUnitPrimaryType() {
-        ITextEditor editor = getAdapter(ITextEditor.class);
-        IFileEditorInput input = (IFileEditorInput) editor.getEditorInput();
-        IFile file = input.getFile();
+        IFile file = editedFile();
         ICompilationUnit compilationUnit = (ICompilationUnit) JavaCore.create(file);
         return compilationUnit.findPrimaryType();
     }
@@ -103,19 +128,6 @@ public class MessageListenerHyperlinkDetector extends AbstractHyperlinkDetector 
 
     private int endOf(ISourceRange range) {
         return range.getOffset() + range.getLength();
-    }
-
-    private IHyperlink[] noResult() {
-        return arrayOrNull(emptyList());
-    }
-
-    private IHyperlink[] arrayOrNull(List<IHyperlink> links) {
-        if(links.isEmpty()) {
-            return null; // NOSONAR - empty arrays are invalid here
-        } else {
-            var array = new IHyperlink[links.size()];
-            return links.toArray(array);
-        }
     }
 
     private List<IHyperlink> methodLinks(IRegion target, IMethod method) throws JavaModelException {

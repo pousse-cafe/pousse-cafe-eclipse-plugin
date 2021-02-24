@@ -167,7 +167,7 @@ public class JdtResolvedClass implements ResolvedClass {
         if(file.isPresent()) {
             return new ResourceSource(file.orElseThrow());
         } else {
-            return new TypeSource(types.iterator().next());
+            return new ResourceSource(types.iterator().next());
         }
     }
 

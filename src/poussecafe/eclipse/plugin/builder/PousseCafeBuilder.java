@@ -155,18 +155,21 @@ public class PousseCafeBuilder extends IncrementalProjectBuilder {
         var delta = getDelta(getProject());
         var updatedResources = relevantDeltas(delta);
         for(IResourceDelta source: updatedResources) {
-            var resource = new ResourceSource((IFile) source.getResource());
-            var resourceId = resource.id();
-            resource.connect(javaProject());
+            var file = (IFile) source.getResource();
+            var sourceId = ResourceSource.sourceId(file);
             if(source.getKind() == IResourceDelta.ADDED
                     || source.getKind() == IResourceDelta.CHANGED) {
-                logger.debug("Including {}", resourceId);
-                includeFile(resource);
+                var resource = new ResourceSource(file);
+                resource.connect(javaProject());
+                if(resource.isConnected()) {
+                    logger.debug("Including {}", sourceId);
+                    includeFile(resource);
+                }
             } else if(source.getKind() == IResourceDelta.REMOVED) {
-                logger.debug("Forgetting {}", resourceId);
-                scanner.forget(resourceId);
+                logger.debug("Forgetting {}", sourceId);
+                scanner.forget(sourceId);
             } else {
-                logger.warn("Unsupported delta kind {} with resource {}", source.getKind(), resourceId);
+                logger.warn("Unsupported delta kind {} with resource {}", source.getKind(), sourceId);
             }
         }
         long end = System.currentTimeMillis();
@@ -243,6 +246,7 @@ public class PousseCafeBuilder extends IncrementalProjectBuilder {
     private void includeFile(ResourceSource source) {
         try {
             scanner.includeSource(source);
+            logger.debug("Included {}", source.id());
         } catch (Exception e) {
             platformLogger.error("Error while scanning " + source.id(), e);
         }

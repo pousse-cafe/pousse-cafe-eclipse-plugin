@@ -14,7 +14,9 @@ public abstract class JavaSourceFileVisitor implements IResourceVisitor {
             IFile file = (IFile) resource;
             var source = new ResourceSource(file);
             source.connect(javaProject);
-            visit(source);
+            if(source.isConnected()) {
+                visit(source);
+            }
         }
         return true;
     }

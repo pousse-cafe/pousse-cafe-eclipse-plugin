@@ -14,6 +14,10 @@ public class Resources {
     }
 
     public static boolean isHealthy(IResource resource) {
+        return hasNoJavaProblem(resource);
+    }
+
+    private static boolean hasNoJavaProblem(IResource resource) {
         try {
             var markers = resource.findMarkers("org.eclipse.jdt.core.problem", true, IResource.DEPTH_INFINITE);
             return markers.length == 0;

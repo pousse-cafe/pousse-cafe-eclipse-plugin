@@ -159,7 +159,7 @@ public class PousseCafeProject implements IAdaptable {
     public Path getSourceFolder() {
         var relativeSourceFolder = getProperty(PousseCafeProjectPropertyPage.SOURCE_FOLDER_PROPERTY_NAME,
                 PousseCafeProjectPropertyPage.DEFAULT_SOURCE_FOLDER);
-        return Path.of(project.getProject().getRawLocation().toOSString(), relativeSourceFolder);
+        return Path.of(project.getProject().getLocation().toOSString(), relativeSourceFolder);
     }
 
     public ClassResolver buildClassResolver() {

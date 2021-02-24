@@ -10,7 +10,6 @@ import java.util.function.UnaryOperator;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.TerminalNode;
-import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.IMember;
 import org.eclipse.jdt.core.IMethod;
 import org.eclipse.jdt.core.IType;
@@ -107,7 +106,7 @@ public class EmilHyperlinkDetector extends AbstractHyperlinkDetector {
         var process = modelOrElseThrow().processes().stream()
                 .filter(candidate -> candidate.simpleName().equals(processName.getText()))
                 .findFirst();
-        tryAddLink(processName.getSymbol(), process.map(ProcessModel::source), unit -> Optional.of(unit.getType(processName.getText())));
+        tryAddLink(processName.getSymbol(), process.map(ProcessModel::source), unit -> Optional.of(unit));
     }
 
     private SourceModel modelOrElseThrow() {
@@ -117,14 +116,14 @@ public class EmilHyperlinkDetector extends AbstractHyperlinkDetector {
     private void tryAddLink(
             Token node,
             Optional<Source> sourceContainer,
-            Function<ICompilationUnit, Optional<IMember>> memberExtractor) {
+            Function<IType, Optional<IMember>> memberExtractor) {
         var linkRegion = region(node);
         if(sourceContainer.isPresent()
                 && new RegionQueries(linkRegion).contains(region)) {
             var source = (ResourceSource) sourceContainer.get();
             source.connect(editor.getPousseCafeProject().getJavaProject());
-            var compilationUnit = source.resourceCompilationUnit();
-            var member = memberExtractor.apply(compilationUnit);
+            var type = source.sourceType();
+            var member = memberExtractor.apply(type);
             if(member.isPresent()
                     && member.get().exists()) {
                 logger.debug("Found link with region {}..{}", linkRegion.getOffset(), linkRegion.getOffset() + linkRegion.getLength() - 1);
@@ -153,7 +152,7 @@ public class EmilHyperlinkDetector extends AbstractHyperlinkDetector {
         if(commandConsumption != null) {
             var commandName = commandConsumption.command().NAME();
             var command = modelOrElseThrow().command(commandName.getText());
-            tryAddLink(commandName.getSymbol(), command.map(Command::source), unit -> Optional.of(unit.getType(commandName.getText())));
+            tryAddLink(commandName.getSymbol(), command.map(Command::source), unit -> Optional.of(unit));
             tryAddLinks(commandName.getText(), commandConsumption.messageConsumptions());
         }
     }
@@ -231,13 +230,12 @@ public class EmilHyperlinkDetector extends AbstractHyperlinkDetector {
 
     private void tryAddLinksOfAggregateContainer(QualifiedNameContext qualifiedName) {
         var aggregateNameNode = qualifiedName.NAME(0);
-        var aggregateName = aggregateNameNode.getText();
         var source = aggregateContainer(qualifiedName);
         if(source.isPresent()) {
-            tryAddLink(aggregateNameNode.getSymbol(), source.get(), unit -> Optional.of(unit.getType(aggregateName)));
+            tryAddLink(aggregateNameNode.getSymbol(), source.get(), unit -> Optional.of(unit));
 
             var typeNameNode = qualifiedName.NAME(1);
-            tryAddLink(typeNameNode.getSymbol(), source.get(), unit -> Optional.of(unit.getType(aggregateName).getType(typeNameNode.getText())));
+            tryAddLink(typeNameNode.getSymbol(), source.get(), unit -> Optional.of(unit.getType(typeNameNode.getText())));
         }
     }
 
@@ -250,7 +248,7 @@ public class EmilHyperlinkDetector extends AbstractHyperlinkDetector {
         var aggregate = modelOrElseThrow().aggregate(aggregateName);
         if(aggregate.isPresent()) {
             tryAddLink(simpleName, sourceProvider.apply(aggregate.get()),
-                    unit -> Optional.of(unit.getType(className)));
+                    unit -> Optional.of(unit));
         }
     }
 
@@ -313,19 +311,17 @@ public class EmilHyperlinkDetector extends AbstractHyperlinkDetector {
         return modelOrElseThrow().aggregate(aggregateName);
     }
 
-    private Function<ICompilationUnit, Optional<IMember>> listenerExtractor(
+    private Function<IType, Optional<IMember>> listenerExtractor(
             QualifiedNameContext qualifiedName,
             Token simpleName,
             String methodName,
             String messageTypeName) {
-        return unit -> {
+        return type -> {
             IType listenerContainer;
             if(qualifiedName != null) {
-                listenerContainer = unit
-                        .getType(qualifiedName.qualifier.getText())
-                        .getType(qualifiedName.name.getText());
+                listenerContainer = type.getType(qualifiedName.name.getText());
             } else {
-                listenerContainer = unit.getType(simpleName.getText());
+                listenerContainer = type;
             }
 
             if(listenerContainer.exists()) {
@@ -377,7 +373,7 @@ public class EmilHyperlinkDetector extends AbstractHyperlinkDetector {
     private void tryAddLinkEvent(EventContext event) {
         var eventName = event.NAME();
         var domainEvent = modelOrElseThrow().event(eventName.getText());
-        tryAddLink(eventName.getSymbol(), domainEvent.map(DomainEvent::source), unit -> Optional.of(unit.getType(eventName.getText())));
+        tryAddLink(eventName.getSymbol(), domainEvent.map(DomainEvent::source), unit -> Optional.of(unit));
     }
 
     private void tryAddLinks(String messageTypeName, AggregateRootConsumptionContext aggregateRootConsumption) {
@@ -393,7 +389,7 @@ public class EmilHyperlinkDetector extends AbstractHyperlinkDetector {
             var runner = modelOrElseThrow().runner(listener.get().runnerClass().orElseThrow());
             tryAddLink(aggregateRootConsumption.runnerName,
                     runner.map(Runner::runnerSource),
-                    unit -> Optional.of(unit.getType(aggregateRootConsumption.runnerName.getText())));
+                    unit -> Optional.of(unit));
         }
         tryAddLinkListener(
                 aggregateRootConsumption.aggregateRoot().qualifiedRootName,

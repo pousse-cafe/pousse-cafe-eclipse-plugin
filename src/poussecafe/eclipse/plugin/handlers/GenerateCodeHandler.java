@@ -5,6 +5,7 @@ import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.Platform;
 import org.eclipse.core.runtime.preferences.InstanceScope;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.ui.IWorkbenchWindow;
@@ -62,7 +63,8 @@ public class GenerateCodeHandler extends AbstractHandler {
                 generateCode(window, project, tree);
                 MessageDialog.openInformation(window.getShell(), DIALOG_TITLE, "Code successfully generated.");
             }
-        } catch (CoreException e) {
+        } catch (Exception e) {
+            Platform.getLog(getClass()).error("Error while generating code", e);
             MessageDialog.openError(window.getShell(), DIALOG_TITLE, "Failed to generate code.");
         }
     }

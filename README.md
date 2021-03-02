@@ -50,8 +50,6 @@ The following projects must be cloned into the workspace:
 - [pousse-cafe-core-eclipse-plugin](https://github.com/pousse-cafe/pousse-cafe-core-eclipse-plugin)
 - [pousse-cafe-source-eclipse-plugin](https://github.com/pousse-cafe/pousse-cafe-source-eclipse-plugin)
 - [pousse-cafe-attribute-eclipse-plugin](https://github.com/pousse-cafe/pousse-cafe-attribute-eclipse-plugin)
-- [pousse-cafe-spring-data-eclipse-plugin](https://github.com/pousse-cafe/pousse-cafe-spring-data-eclipse-plugin)
-- [pousse-cafe-spring-mongo-eclipse-plugin](https://github.com/pousse-cafe/pousse-cafe-spring-mongo-eclipse-plugin)
 
 Each project must contain the "original" JAR file:
 

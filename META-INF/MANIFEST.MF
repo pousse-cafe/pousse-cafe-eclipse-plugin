@@ -2,13 +2,13 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: Pousse-Café Eclipse Plugin
 Bundle-SymbolicName: poussecafe.eclipse.plugin;singleton:=true
-Bundle-Version: 0.4.1.202102241414
+Bundle-Version: 0.4.2.202103021049
 Automatic-Module-Name: pousse.cafe.eclipse.plugin
 Bundle-RequiredExecutionEnvironment: JavaSE-11
 Require-Bundle: org.eclipse.ui,
  org.eclipse.core.runtime,
  org.eclipse.core.resources,
- poussecafe.source.eclipse.plugin;bundle-version="0.27.0",
+ poussecafe.source.eclipse.plugin;bundle-version="0.28.0",
  org.eclipse.jface.text,
  org.eclipse.ui.editors,
  pousse-cafe-antlr4-runtime-eclipse-plugin;bundle-version="4.8.0",
@@ -16,8 +16,6 @@ Require-Bundle: org.eclipse.ui,
  org.eclipse.jdt.ui;bundle-version="3.22.0",
  org.eclipse.ui.ide;bundle-version="3.18.0",
  org.eclipse.jdt.core,
- poussecafe.spring.mongo.eclipse.plugin;bundle-version="0.17.0",
- poussecafe.spring.jpa.eclipse.plugin;bundle-version="0.5.0",
  poussecafe.base.eclipse.plugin;bundle-version="0.26.0",
  org.apache.commons.lang3,
  org.eclipse.ui.workbench.texteditor;bundle-version="3.15.100"

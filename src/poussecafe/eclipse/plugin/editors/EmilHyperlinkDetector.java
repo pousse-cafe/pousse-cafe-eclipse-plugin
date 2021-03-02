@@ -48,6 +48,7 @@ import poussecafe.source.generation.NamingConventions;
 import poussecafe.source.model.Aggregate;
 import poussecafe.source.model.Command;
 import poussecafe.source.model.DomainEvent;
+import poussecafe.source.model.Hooks;
 import poussecafe.source.model.MessageListenerContainerType;
 import poussecafe.source.model.ProcessModel;
 import poussecafe.source.model.Runner;
@@ -340,8 +341,8 @@ public class EmilHyperlinkDetector extends AbstractHyperlinkDetector {
 
     private static final Set<String> HOOK_NAMES = new HashSet<>();
     static {
-        HOOK_NAMES.add(Aggregate.ON_ADD_METHOD_NAME);
-        HOOK_NAMES.add(Aggregate.ON_DELETE_METHOD_NAME);
+        HOOK_NAMES.add(Hooks.ON_ADD_METHOD_NAME);
+        HOOK_NAMES.add(Hooks.ON_DELETE_METHOD_NAME);
     }
 
     private void tryAddLinks(AggregateRootContext aggregateRoot) {

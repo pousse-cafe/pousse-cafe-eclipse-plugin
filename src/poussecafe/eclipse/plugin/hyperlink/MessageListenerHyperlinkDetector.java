@@ -12,7 +12,6 @@ import org.eclipse.jdt.core.ISourceRange;
 import org.eclipse.jdt.core.IType;
 import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.core.JavaModelException;
-import org.eclipse.jdt.core.Signature;
 import org.eclipse.jdt.core.SourceRange;
 import org.eclipse.jface.text.IRegion;
 import org.eclipse.jface.text.ITextViewer;
@@ -31,8 +30,6 @@ import poussecafe.eclipse.plugin.core.PousseCafeProject;
 import poussecafe.eclipse.plugin.editors.ActionHyperlink;
 import poussecafe.source.analysis.ClassName;
 import poussecafe.source.analysis.CompilationUnitResolver;
-import poussecafe.source.generation.NamingConventions;
-import poussecafe.source.model.Aggregate;
 import poussecafe.source.model.MessageListener;
 
 import static java.util.Collections.emptyList;
@@ -192,12 +189,6 @@ public class MessageListenerHyperlinkDetector extends AbstractHyperlinkDetector 
                 .collect(toList());
         links.addAll(buildLinksToListeners(linkRegion, pousseCafeProject.getJavaProject(), listeners, "Producer"));
 
-        var hooks = pousseCafeProject.model().orElseThrow().aggregates().stream()
-                .filter(aggregate -> aggregate.onAddProducedEvents().stream()
-                        .anyMatch(producedEvent -> producedEvent.message().name().equals(messageName)))
-                .collect(toList());
-        links.addAll(buildLinksToOnAddHooks(linkRegion, pousseCafeProject.getJavaProject(), hooks));
-
         return links;
     }
 
@@ -256,53 +247,6 @@ public class MessageListenerHyperlinkDetector extends AbstractHyperlinkDetector 
 
     private IRegion region(ISourceRange sourceRange) {
         return new Region(sourceRange.getOffset(), sourceRange.getLength());
-    }
-
-    private List<IHyperlink> buildLinksToOnAddHooks(
-            IRegion region,
-            IJavaProject project,
-            List<Aggregate> aggregates) throws JavaModelException {
-        var links = new ArrayList<IHyperlink>(aggregates.size());
-        ITextEditor editor = getAdapter(ITextEditor.class);
-        for(Aggregate aggregate : aggregates) {
-            IType containerType;
-            if(aggregate.standaloneRootSource().isPresent()) {
-                var source = (ResourceSource) aggregate.standaloneRootSource().get();
-                source.connect(project);
-                ICompilationUnit compilationUnit = (ICompilationUnit) JavaCore.create(source.file());
-                containerType = compilationUnit.findPrimaryType();
-            } else {
-                var source = (ResourceSource) aggregate.containerSource().orElseThrow();
-                source.connect(project);
-                ICompilationUnit compilationUnit = (ICompilationUnit) JavaCore.create(source.file());
-                containerType = compilationUnit.findPrimaryType().getType(NamingConventions.innerRootClassName());
-            }
-
-            IMethod hookMethod = locateOnAddHook(containerType);
-            if(hookMethod != null) {
-                var action = new OpenJavaEditorAction.Builder()
-                        .member(hookMethod)
-                        .site(editor.getEditorSite())
-                        .build();
-                links.add(new ActionHyperlink.Builder()
-                        .action(action)
-                        .name("Hook " + aggregate.simpleName() + ".onAdd()")
-                        .region(region)
-                        .build());
-            }
-        }
-        return links;
-    }
-
-    private IMethod locateOnAddHook(IType type) throws JavaModelException {
-        for(IMethod method : type.getMethods()) {
-            if(Signature.SIG_VOID.equals(method.getReturnType())
-                    && method.getElementName().equals("onAdd")
-                    && method.getNumberOfParameters() == 0) {
-                return method;
-            }
-        }
-        return null;
     }
 
     private boolean isMessageListener(IMethod method, MessageListener listener) throws JavaModelException {

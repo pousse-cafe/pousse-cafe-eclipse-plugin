@@ -107,7 +107,7 @@ public class EmilHyperlinkDetector extends AbstractHyperlinkDetector {
         var process = modelOrElseThrow().processes().stream()
                 .filter(candidate -> candidate.simpleName().equals(processName.getText()))
                 .findFirst();
-        tryAddLink(processName.getSymbol(), process.map(ProcessModel::source), unit -> Optional.of(unit));
+        tryAddLink(processName.getSymbol(), process.map(ProcessModel::source), Optional::of);
     }
 
     private SourceModel modelOrElseThrow() {
@@ -153,7 +153,7 @@ public class EmilHyperlinkDetector extends AbstractHyperlinkDetector {
         if(commandConsumption != null) {
             var commandName = commandConsumption.command().NAME();
             var command = modelOrElseThrow().command(commandName.getText());
-            tryAddLink(commandName.getSymbol(), command.map(Command::source), unit -> Optional.of(unit));
+            tryAddLink(commandName.getSymbol(), command.map(Command::source), Optional::of);
             tryAddLinks(commandName.getText(), commandConsumption.messageConsumptions());
         }
     }
@@ -233,7 +233,7 @@ public class EmilHyperlinkDetector extends AbstractHyperlinkDetector {
         var aggregateNameNode = qualifiedName.NAME(0);
         var source = aggregateContainer(qualifiedName);
         if(source.isPresent()) {
-            tryAddLink(aggregateNameNode.getSymbol(), source.get(), unit -> Optional.of(unit));
+            tryAddLink(aggregateNameNode.getSymbol(), source.get(), Optional::of);
 
             var typeNameNode = qualifiedName.NAME(1);
             tryAddLink(typeNameNode.getSymbol(), source.get(), unit -> Optional.of(unit.getType(typeNameNode.getText())));
@@ -249,7 +249,7 @@ public class EmilHyperlinkDetector extends AbstractHyperlinkDetector {
         var aggregate = modelOrElseThrow().aggregate(aggregateName);
         if(aggregate.isPresent()) {
             tryAddLink(simpleName, sourceProvider.apply(aggregate.get()),
-                    unit -> Optional.of(unit));
+                    Optional::of);
         }
     }
 
@@ -266,7 +266,6 @@ public class EmilHyperlinkDetector extends AbstractHyperlinkDetector {
                 containerType);
         var listenerExtractor = listenerExtractor(
                 containerQualifiedName,
-                containerSimpleName,
                 listenerName.getText(),
                 messageTypeName);
         tryAddLink(listenerName, listenerContainer, listenerExtractor);
@@ -314,7 +313,6 @@ public class EmilHyperlinkDetector extends AbstractHyperlinkDetector {
 
     private Function<IType, Optional<IMember>> listenerExtractor(
             QualifiedNameContext qualifiedName,
-            Token simpleName,
             String methodName,
             String messageTypeName) {
         return type -> {
@@ -374,7 +372,7 @@ public class EmilHyperlinkDetector extends AbstractHyperlinkDetector {
     private void tryAddLinkEvent(EventContext event) {
         var eventName = event.NAME();
         var domainEvent = modelOrElseThrow().event(eventName.getText());
-        tryAddLink(eventName.getSymbol(), domainEvent.map(DomainEvent::source), unit -> Optional.of(unit));
+        tryAddLink(eventName.getSymbol(), domainEvent.map(DomainEvent::source), Optional::of);
     }
 
     private void tryAddLinks(String messageTypeName, AggregateRootConsumptionContext aggregateRootConsumption) {
@@ -390,7 +388,7 @@ public class EmilHyperlinkDetector extends AbstractHyperlinkDetector {
             var runner = modelOrElseThrow().runner(listener.get().runnerClass().orElseThrow());
             tryAddLink(aggregateRootConsumption.runnerName,
                     runner.map(Runner::runnerSource),
-                    unit -> Optional.of(unit));
+                    Optional::of);
         }
         tryAddLinkListener(
                 aggregateRootConsumption.aggregateRoot().qualifiedRootName,

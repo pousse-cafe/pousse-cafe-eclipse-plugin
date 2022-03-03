@@ -4,6 +4,7 @@ import java.io.Serializable;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.Path;
+import org.eclipse.jdt.core.IClassFile;
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.core.IType;
@@ -29,24 +30,26 @@ public class ResourceSource extends Source implements Serializable {
     }
 
     public boolean isConnected() {
-        return type != null;
+        return type != null || source != null;
     }
 
-    public boolean hasFile() {
-        connectedOrThrow();
-        return file != null;
+    public boolean hasSource() {
+        return compilationUnit != null || source != null;
     }
 
     @Override
     public void configure(ASTParser parser) {
-        parser.setSource(resourceCompilationUnit());
+        if(compilationUnit != null) {
+            parser.setSource(resourceCompilationUnit());
+        } else if(source != null) {
+            parser.setSource(source.toCharArray());
+        } else {
+            throw new IllegalStateException("No source available");
+        }
     }
 
-    public ICompilationUnit resourceCompilationUnit() {
+    private ICompilationUnit resourceCompilationUnit() {
         connectedOrThrow();
-        if(compilationUnit == null) {
-
-        }
         return compilationUnit;
     }
 
@@ -82,6 +85,15 @@ public class ResourceSource extends Source implements Serializable {
 
     private String typeName;
 
+    public ResourceSource(IClassFile classFile) {
+        super(classFile.getElementName());
+
+        classFileHandleIdentifier = classFile.getHandleIdentifier();
+        connect(classFile.getJavaProject());
+    }
+
+    private String classFileHandleIdentifier;
+
     @Override
     public void connect(Object project) {
         requireNonNull(project);
@@ -104,7 +116,7 @@ public class ResourceSource extends Source implements Serializable {
             }
         }
 
-        if(type == null) {
+        if(type == null && typeName != null) {
             relativePath = null;
             try {
                 type = javaProject.findType(typeName);
@@ -112,7 +124,20 @@ public class ResourceSource extends Source implements Serializable {
                 // Do nothing
             }
         }
+
+        if(type == null && classFileHandleIdentifier != null) {
+            relativePath = null;
+            try {
+                var classFile = (IClassFile) JavaCore.create(classFileHandleIdentifier);
+                type = classFile.findPrimaryType();
+                source = classFile.getSource();
+            } catch (Exception e) {
+                // Do nothing
+            }
+        }
     }
+
+    private String source;
 
     ResourceSource() {
 

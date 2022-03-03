@@ -14,8 +14,12 @@ import org.eclipse.core.runtime.ILog;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.OperationCanceledException;
 import org.eclipse.core.runtime.Platform;
+import org.eclipse.jdt.core.IClassFile;
+import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.IJavaProject;
+import org.eclipse.jdt.core.IPackageFragment;
 import org.eclipse.jdt.core.JavaCore;
+import org.eclipse.jdt.core.JavaModelException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import poussecafe.eclipse.plugin.core.PousseCafeCore;
@@ -180,12 +184,37 @@ public class PousseCafeBuilder extends IncrementalProjectBuilder {
         logger.info("Starting full build...");
         long start = System.currentTimeMillis();
         try {
-            getProject().accept(new ResourceVisitor(monitor));
+            var project = pousseCafeProject();
+            for(var fragmentRoot : javaProject().getPackageFragments()) {
+                String fragmentRootName = fragmentRoot.getElementName();
+                if(fragmentRootName.startsWith(project.getBasePackage())) {
+                    include(monitor, fragmentRoot);
+                }
+            }
         } catch (CoreException e) {
-            platformLogger.error("Unable to validate project", e);
+            platformLogger.error("Unable to build project", e);
         }
         long end = System.currentTimeMillis();
         logger.info("Scanned project in {} ms", (end - start));
+    }
+
+    private void include(IProgressMonitor monitor, IPackageFragment fragmentRoot) throws JavaModelException {
+        if(monitor.isCanceled()) {
+            throw new OperationCanceledException();
+        }
+        for(var child : fragmentRoot.getChildren()) {
+            if(monitor.isCanceled()) {
+                throw new OperationCanceledException();
+            }
+            if(child instanceof ICompilationUnit) {
+                var file = (IFile) child.getResource();
+                monitor.subTask("Pousse-Café build: scanning " + file.getName());
+                includeFile(new ResourceSource(file));
+            } else if(child instanceof IClassFile) {
+                monitor.subTask("Pousse-Café build: scanning " + child.getElementName());
+                includeFile(new ResourceSource((IClassFile) child));
+            }
+        }
     }
 
     private List<IResourceDelta> relevantDeltas(IResourceDelta delta) {
@@ -224,29 +253,12 @@ public class PousseCafeBuilder extends IncrementalProjectBuilder {
 
     private SourceScanner scanner;
 
-    private class ResourceVisitor extends JavaSourceFileVisitor {
-
-        ResourceVisitor(IProgressMonitor monitor) {
-            super(javaProject());
-            this.monitor = monitor;
-        }
-
-        private IProgressMonitor monitor;
-
-        @Override
-        protected void visit(ResourceSource source) {
-            if(monitor.isCanceled()) {
-                throw new OperationCanceledException();
-            }
-            monitor.subTask("Pousse-Café build: scanning " + source.id());
-            includeFile(source);
-        }
-    }
-
     private void includeFile(ResourceSource source) {
         try {
-            scanner.includeSource(source);
-            logger.debug("Included {}", source.id());
+            if(source.hasSource()) {
+                scanner.includeSource(source);
+                logger.debug("Included {}", source.id());
+            }
         } catch (Exception e) {
             platformLogger.error("Error while scanning " + source.id(), e);
         }

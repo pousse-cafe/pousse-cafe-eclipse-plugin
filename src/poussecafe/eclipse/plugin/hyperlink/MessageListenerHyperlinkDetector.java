@@ -40,10 +40,15 @@ public class MessageListenerHyperlinkDetector extends AbstractHyperlinkDetector 
 
     @Override
     public IHyperlink[] detectHyperlinks(ITextViewer textViewer, IRegion region, boolean canShowMultipleHyperlinks) {
-        if(!isEligibleContent()) {
+        ITextEditor editor = getAdapter(ITextEditor.class);
+        if(!(editor.getEditorInput() instanceof IFileEditorInput)) {
             return noResult();
         }
+
         try {
+            if(!isEligibleContent()) {
+                return noResult();
+            }
             var links = new ArrayList<IHyperlink>();
             links.addAll(detectLinksOfListener(region));
             links.addAll(detectLinksOfMessage(region));
@@ -61,8 +66,7 @@ public class MessageListenerHyperlinkDetector extends AbstractHyperlinkDetector 
     private IFile editedFile() {
         ITextEditor editor = getAdapter(ITextEditor.class);
         IFileEditorInput input = (IFileEditorInput) editor.getEditorInput();
-        IFile file = input.getFile();
-        return file;
+        return input.getFile();
     }
 
     private IHyperlink[] noResult() {

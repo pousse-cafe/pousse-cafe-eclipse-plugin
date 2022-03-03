@@ -42,6 +42,11 @@
             id="poussecafe.eclipse.plugin.commands.generateCode"
             name="Generate code">
       </command>
+      <command
+            categoryId="poussecafe.eclipse.plugin.commands.category"
+            id="poussecafe.eclipse.plugin.commands.generateDoc"
+            name="Generate doc">
+      </command>
    </extension>
    <extension
          point="org.eclipse.ui.menus">
@@ -112,8 +117,15 @@
                   commandId="poussecafe.eclipse.plugin.commands.generateCode"
                   icon="icons/emil.png"
                   id="poussecafe.eclipse.plugin.toolbars.generateCode"
-                  label="Pousse-Café toolbar"
+                  label="Generate code"
                   tooltip="Generate code using active EMIL editor&apos;s content">
+            </command>
+            <command
+                  commandId="poussecafe.eclipse.plugin.commands.generateDoc"
+                  icon="icons/doc.png"
+                  id="poussecafe.eclipse.plugin.toolbars.generateDoc"
+                  label="Generate doc"
+                  tooltip="Generate documentation for selected projects">
             </command>
          </toolbar>
       </menuContribution>
@@ -175,6 +187,10 @@
                     </equals>
                 </with>
             </enabledWhen>
+      </handler>
+      <handler
+            class="poussecafe.eclipse.plugin.handlers.GenerateDocHandler"
+            commandId="poussecafe.eclipse.plugin.commands.generateDoc">
       </handler>
    </extension>
    <extension

@@ -1,6 +1,5 @@
 package poussecafe.eclipse.plugin.handlers;
 
-import java.util.Iterator;
 import javax.inject.Inject;
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
@@ -8,7 +7,6 @@ import org.eclipse.core.commands.ExecutionException;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IProjectDescription;
 import org.eclipse.core.runtime.CoreException;
-import org.eclipse.core.runtime.IAdaptable;
 import org.eclipse.core.runtime.ILog;
 import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.jface.viewers.IStructuredSelection;
@@ -21,30 +19,18 @@ public class AddRemovePousseCafeNatureHandler extends AbstractHandler {
     public Object execute(ExecutionEvent event) throws ExecutionException {
         ISelection selection = HandlerUtil.getCurrentSelection(event);
         if(selection instanceof IStructuredSelection) {
-            for (Iterator<?> it = ((IStructuredSelection) selection).iterator(); it.hasNext();) {
-                IProject project = nextProject(it);
-                if(project != null) {
-                    try {
-                        toggleNature(project);
-                    } catch (CoreException e) {
-                        logger.error("Failed to toggle nature");
-                        throw new ExecutionException("Failed to toggle nature", e);
-                    }
+            var it = ProjectSelectionIterator.iterate((IStructuredSelection) selection);
+            while(it.hasNext()) {
+                IProject project = it.next();
+                try {
+                    toggleNature(project);
+                } catch (CoreException e) {
+                    logger.error("Failed to toggle nature");
+                    throw new ExecutionException("Failed to toggle nature", e);
                 }
             }
         }
         return null;
-    }
-
-    private IProject nextProject(Iterator<?> it) {
-        Object element = it.next();
-        IProject project = null;
-        if(element instanceof IProject) {
-            project = (IProject) element;
-        } else if(element instanceof IAdaptable) {
-            project = ((IAdaptable) element).getAdapter(IProject.class);
-        }
-        return project;
     }
 
     private void toggleNature(IProject project) throws CoreException {

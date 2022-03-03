@@ -150,7 +150,12 @@ public class PousseCafeProject implements IAdaptable {
     private String getProperty(QualifiedName name, String defaultValue) {
         var resource = project.getProject();
         try {
-            return resource.getPersistentProperty(name);
+            String value = resource.getPersistentProperty(name);
+            if(value == null) {
+                return defaultValue;
+            } else {
+                return value;
+            }
         } catch (CoreException e) {
             return defaultValue;
         }
@@ -194,5 +199,26 @@ public class PousseCafeProject implements IAdaptable {
     public boolean hasProblems() throws CoreException {
         var problems = project.getProject().findMarkers(PousseCafeBuilder.MARKER_TYPE, true, IResource.DEPTH_INFINITE);
         return problems != null && problems.length > 0;
+    }
+
+    public Path getDocumentationFolder() throws CoreException {
+        var tempFolder = createPousseCafeTempFolder();
+        var folder = tempFolder.getFolder("doc");
+        folder.refreshLocal(IResource.DEPTH_ZERO, null);
+        if(!folder.exists()) {
+            folder.create(false, true, null);
+        }
+        return Path.of(folder.getLocation().toOSString());
+    }
+
+    public String getDomain() {
+        return getProperty(PousseCafeProjectPropertyPage.DOMAIN_PROPERTY_NAME,
+                PousseCafeProjectPropertyPage.DEFAULT_DOMAIN);
+    }
+
+    public boolean openDocInExternalBrownser() {
+        var value = getProperty(PousseCafeProjectPropertyPage.OPEN_IN_EXTERNAL_BROWSER_PROPERTY_NAME,
+                PousseCafeProjectPropertyPage.DEFAULT_OPEN_IN_EXTERNAL_BROWSER);
+        return Boolean.parseBoolean(value);
     }
 }

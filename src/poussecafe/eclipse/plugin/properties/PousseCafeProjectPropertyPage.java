@@ -30,6 +30,10 @@ public class PousseCafeProjectPropertyPage extends PropertyPage {
 
     public static final String DEFAULT_SOURCE_FOLDER = "src/";
 
+    public static final QualifiedName DOMAIN_PROPERTY_NAME = new QualifiedName(POUSSE_CAFE_PROPERTY_QUALIFIER, "domain");
+
+    public static final String DEFAULT_DOMAIN = "My Domain";
+
     private static final int TEXT_FIELD_WIDTH = 50;
 
     public static final QualifiedName USES_INTERNAL_STORAGE_PROPERTY_NAME = new QualifiedName(POUSSE_CAFE_PROPERTY_QUALIFIER, "usesInternalStorage");
@@ -43,6 +47,10 @@ public class PousseCafeProjectPropertyPage extends PropertyPage {
     public static final QualifiedName USES_SPRING_JPA_STORAGE_PROPERTY_NAME = new QualifiedName(POUSSE_CAFE_PROPERTY_QUALIFIER, "usesSpringJpaStorage");
 
     public static final String DEFAULT_USES_SPRING_JPA_STORAGE = "false";
+
+    public static final QualifiedName OPEN_IN_EXTERNAL_BROWSER_PROPERTY_NAME = new QualifiedName(POUSSE_CAFE_PROPERTY_QUALIFIER, "openInExternalBrowser");
+
+    public static final String DEFAULT_OPEN_IN_EXTERNAL_BROWSER = "false";
 
     public PousseCafeProjectPropertyPage() {
         super();
@@ -58,6 +66,8 @@ public class PousseCafeProjectPropertyPage extends PropertyPage {
         pageRoot.setLayoutData(data);
 
         addGeneralSection();
+        addSeparator();
+        addDocumentationSection();
         addSeparator();
         addStorageSection();
 
@@ -126,6 +136,18 @@ public class PousseCafeProjectPropertyPage extends PropertyPage {
         separator.setLayoutData(gridData);
     }
 
+    private void addDocumentationSection() {
+        var fieldsComposite = createTwoColumnsComposite();
+        domainText = addField(fieldsComposite, "Domain name:", DOMAIN_PROPERTY_NAME, DEFAULT_DOMAIN);
+        openInExternalBrowser = addCheckbox(fieldsComposite, "Open in external browser",
+                OPEN_IN_EXTERNAL_BROWSER_PROPERTY_NAME,
+                Boolean.parseBoolean(DEFAULT_OPEN_IN_EXTERNAL_BROWSER));
+    }
+
+    private Text domainText;
+
+    private Button openInExternalBrowser;
+
     private void addStorageSection() {
         var storageComposite = createTwoColumnsComposite();
         usesInternalStorage = addCheckbox(storageComposite, "Uses internal storage",
@@ -169,6 +191,10 @@ public class PousseCafeProjectPropertyPage extends PropertyPage {
         super.performDefaults();
         basePackageText.setText(DEFAULT_BASE_PACKAGE);
         sourceFolderText.setText(DEFAULT_SOURCE_FOLDER);
+
+        domainText.setText(DEFAULT_DOMAIN);
+        openInExternalBrowser.setSelection(Boolean.parseBoolean(DEFAULT_OPEN_IN_EXTERNAL_BROWSER));
+
         usesInternalStorage.setSelection(Boolean.parseBoolean(DEFAULT_USES_INTERNAL_STORAGE));
         usesSpringMongoStorage.setSelection(Boolean.parseBoolean(DEFAULT_USES_SPRING_MONGO_STORAGE));
         usesSpringJpaStorage.setSelection(Boolean.parseBoolean(DEFAULT_USES_SPRING_JPA_STORAGE));
@@ -179,6 +205,10 @@ public class PousseCafeProjectPropertyPage extends PropertyPage {
         try {
             getResource().setPersistentProperty(BASE_PACKAGE_PROPERTY_NAME, basePackageText.getText());
             getResource().setPersistentProperty(SOURCE_FOLDER_PROPERTY_NAME, sourceFolderText.getText());
+
+            getResource().setPersistentProperty(DOMAIN_PROPERTY_NAME, domainText.getText());
+            getResource().setPersistentProperty(OPEN_IN_EXTERNAL_BROWSER_PROPERTY_NAME,
+                    Boolean.toString(openInExternalBrowser.getSelection()));
 
             getResource().setPersistentProperty(USES_INTERNAL_STORAGE_PROPERTY_NAME,
                     Boolean.toString(usesInternalStorage.getSelection()));

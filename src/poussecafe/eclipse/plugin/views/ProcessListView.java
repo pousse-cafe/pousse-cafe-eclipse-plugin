@@ -1,10 +1,20 @@
 package poussecafe.eclipse.plugin.views;
 
 import javax.inject.Inject;
+
+import org.eclipse.core.internal.resources.Project;
+import org.eclipse.core.resources.IProject;
+import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.ILog;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Platform;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.jdt.core.IJavaProject;
+import org.eclipse.jdt.core.JavaCore;
+import org.eclipse.jdt.internal.core.JavaNature;
+import org.eclipse.jdt.internal.core.JavaProject;
+import org.eclipse.jdt.internal.ui.packageview.PackageExplorerPart;
 import org.eclipse.jdt.ui.IPackagesViewPart;
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.IAction;
@@ -21,6 +31,7 @@ import org.eclipse.ui.ISelectionListener;
 import org.eclipse.ui.ISharedImages;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.PlatformUI;
+import org.eclipse.ui.navigator.resources.ProjectExplorer;
 import org.eclipse.ui.part.ViewPart;
 import org.eclipse.ui.progress.UIJob;
 import poussecafe.eclipse.plugin.actions.OpenEmilEditorAction;
@@ -81,14 +92,26 @@ public class ProcessListView extends ViewPart {
         }
     }
 
+    private ILog logger = Platform.getLog(getClass());
+
     private ISelectionListener selectionListener = (part, selection) -> {
-        if(part instanceof IPackagesViewPart
-                && selection instanceof TreeSelection
+        if(selection instanceof TreeSelection
                 && !selection.isEmpty()) {
-            var packageSelection = (TreeSelection) selection;
-            if(packageSelection.getFirstElement() instanceof IJavaProject) {
-                var javaProject = (IJavaProject) packageSelection.getFirstElement();
+            var treeSelection = (TreeSelection) selection;
+            var maybeProjectSelection = treeSelection.getFirstElement();
+            if(maybeProjectSelection instanceof IJavaProject) {
+                var javaProject = (IJavaProject) maybeProjectSelection;
                 setProject(javaProject);
+            } else if(maybeProjectSelection instanceof IProject) {
+                var projectSelection = (IProject) maybeProjectSelection;
+                try {
+                    if(projectSelection.hasNature(JavaCore.NATURE_ID)) {
+                        var javaProject = JavaCore.create(projectSelection);
+                        setProject(javaProject);
+                    }
+                } catch (CoreException e) {
+                    logger.error(e.getMessage());
+                }
             }
         }
     };

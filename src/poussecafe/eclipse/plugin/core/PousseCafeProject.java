@@ -216,9 +216,13 @@ public class PousseCafeProject implements IAdaptable {
                 PousseCafeProjectPropertyPage.DEFAULT_DOMAIN);
     }
 
-    public boolean openDocInExternalBrownser() {
-        var value = getProperty(PousseCafeProjectPropertyPage.OPEN_IN_EXTERNAL_BROWSER_PROPERTY_NAME,
-                PousseCafeProjectPropertyPage.DEFAULT_OPEN_IN_EXTERNAL_BROWSER);
-        return Boolean.parseBoolean(value);
+    public Browser documentationBrowser() {
+        try {
+            int value = Integer.parseInt(getProperty(PousseCafeProjectPropertyPage.OPEN_IN_EXTERNAL_BROWSER_PROPERTY_NAME,
+                    PousseCafeProjectPropertyPage.DEFAULT_OPEN_IN_EXTERNAL_BROWSER));
+            return Browser.values()[value];
+        } catch(Exception e) {
+            return Browser.ECLIPSE;
+        }
     }
 }

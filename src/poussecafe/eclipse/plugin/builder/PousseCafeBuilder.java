@@ -213,6 +213,8 @@ public class PousseCafeBuilder extends IncrementalProjectBuilder {
             } else if(child instanceof IClassFile) {
                 monitor.subTask("Pousse-Café build: scanning " + child.getElementName());
                 includeFile(new ResourceSource((IClassFile) child));
+            } else {
+                logger.debug("Unsupported child type: " + child.getClass().getCanonicalName());
             }
         }
     }

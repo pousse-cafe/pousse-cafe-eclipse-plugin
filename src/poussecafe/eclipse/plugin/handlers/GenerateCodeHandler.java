@@ -65,7 +65,7 @@ public class GenerateCodeHandler extends AbstractHandler {
             }
         } catch (Exception e) {
             Platform.getLog(getClass()).error("Error while generating code", e);
-            MessageDialog.openError(window.getShell(), DIALOG_TITLE, "Failed to generate code.");
+            MessageDialog.openError(window.getShell(), DIALOG_TITLE, "Failed to generate code, please check that the configured source path matches existing code.");
         }
     }
 

@@ -12,10 +12,12 @@ import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.ui.PlatformUI;
+import org.eclipse.ui.browser.IWorkbenchBrowserSupport;
 import org.eclipse.ui.handlers.HandlerUtil;
 import poussecafe.doc.PousseCafeDocGenerationConfiguration;
 import poussecafe.doc.PousseCafeDocGenerator;
 import poussecafe.eclipse.plugin.builder.PousseCafeNature;
+import poussecafe.eclipse.plugin.core.Browser;
 import poussecafe.eclipse.plugin.core.PousseCafeCore;
 import poussecafe.eclipse.plugin.core.PousseCafeProject;
 import poussecafe.source.model.SourceModel;
@@ -68,12 +70,19 @@ public class GenerateDocHandler extends AbstractHandler {
     private void openDocInBrowser(PousseCafeProject pousseCafeProject) {
         try {
             var url = new URL("file://" + pousseCafeProject.getDocumentationFolder().resolve("index.html").toString());
-            if(pousseCafeProject.openDocInExternalBrownser()) {
+            var documentationBrowser = pousseCafeProject.documentationBrowser();
+            var browserId = pousseCafeProject.getJavaProject().getProject().getName() + "PousseCafeDocBrowserId";
+            if(documentationBrowser == Browser.EXTERNAL) {
                 PlatformUI.getWorkbench().getBrowserSupport().getExternalBrowser().openURL(url);
+            } else if(documentationBrowser == Browser.INTERNAL) {
+                int style = IWorkbenchBrowserSupport.AS_EDITOR;
+                var browser = PlatformUI.getWorkbench().getBrowserSupport().createBrowser(style, browserId, "index.html", "Pousse-Café Documentation");
+                browser.openURL(url);
+            } else if(documentationBrowser == Browser.ECLIPSE) {
+                var browser = PlatformUI.getWorkbench().getBrowserSupport().createBrowser(browserId);
+                browser.openURL(url);
             } else {
-                var browserId = pousseCafeProject.getJavaProject().getProject().getName() + "PousseCafeDocBrowserId";
-                    var browser = PlatformUI.getWorkbench().getBrowserSupport().createBrowser(browserId);
-                    browser.openURL(url);
+                throw new IllegalArgumentException("Unsupported documentation browser " + documentationBrowser);
             }
         } catch (Exception e) {
             Platform.getLog(getClass()).error("Error while generating doc", e);

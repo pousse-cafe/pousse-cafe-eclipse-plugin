@@ -28,7 +28,6 @@ public class BuilderState implements Serializable {
         }
     }
 
-    @SuppressWarnings("unchecked")
     public static BuilderState deserialize(IFile stateFile) throws Exception {
         var state = new BuilderState();
         var ois = new ObjectInputStream(stateFile.getContents());

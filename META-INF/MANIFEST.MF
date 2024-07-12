@@ -2,7 +2,7 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: Pousse-Café Eclipse Plugin
 Bundle-SymbolicName: poussecafe.eclipse.plugin;singleton:=true
-Bundle-Version: 0.5.1.202407092126
+Bundle-Version: 0.5.1.202407121404
 Automatic-Module-Name: pousse.cafe.eclipse.plugin
 Bundle-RequiredExecutionEnvironment: JavaSE-11
 Require-Bundle: org.eclipse.ui,

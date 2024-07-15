@@ -218,4 +218,18 @@
             targetId="org.eclipse.jdt.ui.javaCode">
       </hyperlinkDetector>
    </extension>
+   <extension
+         point="org.eclipse.ui.preferencePages">
+      <page
+            class="poussecafe.eclipse.plugin.preferences.PousseCafePreferences"
+            id="poussecafe.eclipse.plugin.preferences.PousseCafePreferences"
+            name="Pousse-Café">
+      </page>
+   </extension>
+   <extension
+         point="org.eclipse.core.runtime.preferences">
+      <initializer
+            class="poussecafe.eclipse.plugin.preferences.PreferenceInitializer">
+      </initializer>
+   </extension>
 </plugin>

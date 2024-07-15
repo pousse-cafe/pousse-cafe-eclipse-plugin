@@ -12,7 +12,6 @@ import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.ui.PlatformUI;
-import org.eclipse.ui.browser.IWorkbenchBrowserSupport;
 import org.eclipse.ui.handlers.HandlerUtil;
 import poussecafe.doc.PousseCafeDocGenerationConfiguration;
 import poussecafe.doc.PousseCafeDocGenerator;
@@ -74,10 +73,6 @@ public class GenerateDocHandler extends AbstractHandler {
             var browserId = pousseCafeProject.getJavaProject().getProject().getName() + "PousseCafeDocBrowserId";
             if(documentationBrowser == Browser.EXTERNAL) {
                 PlatformUI.getWorkbench().getBrowserSupport().getExternalBrowser().openURL(url);
-            } else if(documentationBrowser == Browser.INTERNAL) {
-                int style = IWorkbenchBrowserSupport.AS_EDITOR;
-                var browser = PlatformUI.getWorkbench().getBrowserSupport().createBrowser(style, browserId, "index.html", "Pousse-Café Documentation");
-                browser.openURL(url);
             } else if(documentationBrowser == Browser.ECLIPSE) {
                 var browser = PlatformUI.getWorkbench().getBrowserSupport().createBrowser(browserId);
                 browser.openURL(url);

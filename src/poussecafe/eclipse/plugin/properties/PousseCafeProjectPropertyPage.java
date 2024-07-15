@@ -8,14 +8,11 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
-import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.dialogs.PropertyPage;
-
-import poussecafe.eclipse.plugin.core.Browser;
 
 public class PousseCafeProjectPropertyPage extends PropertyPage {
 
@@ -50,10 +47,6 @@ public class PousseCafeProjectPropertyPage extends PropertyPage {
     public static final QualifiedName USES_SPRING_JPA_STORAGE_PROPERTY_NAME = new QualifiedName(POUSSE_CAFE_PROPERTY_QUALIFIER, "usesSpringJpaStorage");
 
     public static final String DEFAULT_USES_SPRING_JPA_STORAGE = "false";
-
-    public static final QualifiedName OPEN_IN_EXTERNAL_BROWSER_PROPERTY_NAME = new QualifiedName(POUSSE_CAFE_PROPERTY_QUALIFIER, "openInExternalBrowser");
-
-    public static final String DEFAULT_OPEN_IN_EXTERNAL_BROWSER = Integer.toString(Browser.ECLIPSE.ordinal());
 
     public PousseCafeProjectPropertyPage() {
         super();
@@ -142,36 +135,9 @@ public class PousseCafeProjectPropertyPage extends PropertyPage {
     private void addDocumentationSection() {
         var fieldsComposite = createTwoColumnsComposite();
         domainText = addField(fieldsComposite, "Domain name:", DOMAIN_PROPERTY_NAME, DEFAULT_DOMAIN);
-        openInExternalBrowser = addSelect(fieldsComposite, "Browser for documentation",
-                OPEN_IN_EXTERNAL_BROWSER_PROPERTY_NAME,
-                0,
-                new String[] { "Eclipse preferences", "Internal", "External" });
     }
 
     private Text domainText;
-
-    private Combo addSelect(Composite parent, String title, QualifiedName propertyName, int defaultValue, String[] items) {
-        var label = new Label(parent, SWT.NULL);
-        label.setText(title);
-
-        var field = new Combo(parent, SWT.READ_ONLY);
-        var gd = new GridData();
-        gd.widthHint = convertWidthInCharsToPixels(TEXT_FIELD_WIDTH);
-        field.setLayoutData(gd);
-
-        field.setItems(items);
-
-        try {
-            int value = Integer.parseInt(getResource().getPersistentProperty(propertyName));
-            field.select(value);
-        } catch (Exception e) {
-            field.select(defaultValue);
-        }
-
-        return field;
-    }
-
-    private Combo openInExternalBrowser;
 
     private void addStorageSection() {
         var storageComposite = createTwoColumnsComposite();
@@ -218,7 +184,6 @@ public class PousseCafeProjectPropertyPage extends PropertyPage {
         sourceFolderText.setText(DEFAULT_SOURCE_FOLDER);
 
         domainText.setText(DEFAULT_DOMAIN);
-        openInExternalBrowser.select(0);
 
         usesInternalStorage.setSelection(Boolean.parseBoolean(DEFAULT_USES_INTERNAL_STORAGE));
         usesSpringMongoStorage.setSelection(Boolean.parseBoolean(DEFAULT_USES_SPRING_MONGO_STORAGE));
@@ -232,8 +197,6 @@ public class PousseCafeProjectPropertyPage extends PropertyPage {
             getResource().setPersistentProperty(SOURCE_FOLDER_PROPERTY_NAME, sourceFolderText.getText());
 
             getResource().setPersistentProperty(DOMAIN_PROPERTY_NAME, domainText.getText());
-            getResource().setPersistentProperty(OPEN_IN_EXTERNAL_BROWSER_PROPERTY_NAME,
-                    Integer.toString(openInExternalBrowser.getSelectionIndex()));
 
             getResource().setPersistentProperty(USES_INTERNAL_STORAGE_PROPERTY_NAME,
                     Boolean.toString(usesInternalStorage.getSelection()));
@@ -246,5 +209,4 @@ public class PousseCafeProjectPropertyPage extends PropertyPage {
         }
         return true;
     }
-
 }

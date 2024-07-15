@@ -14,12 +14,17 @@ import org.eclipse.core.runtime.IAdaptable;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.QualifiedName;
 import org.eclipse.core.runtime.jobs.Job;
+import org.eclipse.core.runtime.preferences.InstanceScope;
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.core.JavaCore;
+import org.eclipse.ui.preferences.ScopedPreferenceStore;
+import org.osgi.framework.FrameworkUtil;
+
 import poussecafe.eclipse.plugin.builder.JdtClassResolver;
 import poussecafe.eclipse.plugin.builder.PousseCafeBuilder;
 import poussecafe.eclipse.plugin.builder.PousseCafeNature;
+import poussecafe.eclipse.plugin.preferences.PreferenceConstants;
 import poussecafe.eclipse.plugin.properties.PousseCafeProjectPropertyPage;
 import poussecafe.source.analysis.ClassResolver;
 import poussecafe.source.model.SourceModel;
@@ -217,12 +222,13 @@ public class PousseCafeProject implements IAdaptable {
     }
 
     public Browser documentationBrowser() {
-        try {
-            int value = Integer.parseInt(getProperty(PousseCafeProjectPropertyPage.OPEN_IN_EXTERNAL_BROWSER_PROPERTY_NAME,
-                    PousseCafeProjectPropertyPage.DEFAULT_OPEN_IN_EXTERNAL_BROWSER));
-            return Browser.values()[value];
-        } catch(Exception e) {
+        var store = new ScopedPreferenceStore(InstanceScope.INSTANCE,
+                String.valueOf(FrameworkUtil.getBundle(getClass()).getBundleId()));
+        var browser = store.getString(PreferenceConstants.BROWSER_FOR_DOCUMENTATION);
+        if(PreferenceConstants.BROWSER_FOR_DOCUMENTATION_ECLIPSE.equals(browser)) {
             return Browser.ECLIPSE;
+        } else {
+            return Browser.EXTERNAL;
         }
     }
 }

@@ -25,7 +25,7 @@ public class PousseCafeProjectPropertyPage extends PropertyPage {
 
     public static final QualifiedName BASE_PACKAGE_PROPERTY_NAME = new QualifiedName(POUSSE_CAFE_PROPERTY_QUALIFIER, "basePackage");
 
-    public static final String DEFAULT_BASE_PACKAGE = "default.base.package";
+    public static final String DEFAULT_BASE_PACKAGE = "some.base.package";
 
     private static final String SOURCE_FOLDER_TITLE = "Source folder:";
 

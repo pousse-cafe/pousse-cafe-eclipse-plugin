@@ -2,7 +2,6 @@ package poussecafe.eclipse.plugin.views;
 
 import javax.inject.Inject;
 
-import org.eclipse.core.internal.resources.Project;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.ILog;
@@ -12,10 +11,6 @@ import org.eclipse.core.runtime.Platform;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.core.JavaCore;
-import org.eclipse.jdt.internal.core.JavaNature;
-import org.eclipse.jdt.internal.core.JavaProject;
-import org.eclipse.jdt.internal.ui.packageview.PackageExplorerPart;
-import org.eclipse.jdt.ui.IPackagesViewPart;
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.IAction;
 import org.eclipse.jface.viewers.ArrayContentProvider;
@@ -31,7 +26,6 @@ import org.eclipse.ui.ISelectionListener;
 import org.eclipse.ui.ISharedImages;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.PlatformUI;
-import org.eclipse.ui.navigator.resources.ProjectExplorer;
 import org.eclipse.ui.part.ViewPart;
 import org.eclipse.ui.progress.UIJob;
 import poussecafe.eclipse.plugin.actions.OpenEmilEditorAction;
@@ -44,7 +38,7 @@ public class ProcessListView extends ViewPart {
 
     public static final String ID = "poussecafe.eclipse.plugin.views.ProcessListView";
 
-    @Inject
+    @Inject // NOSONAR - No constructor injection possible with Eclipse
     IWorkbench workbench;
 
     @Override

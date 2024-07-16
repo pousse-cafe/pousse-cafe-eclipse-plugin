@@ -12,6 +12,8 @@ import org.eclipse.jface.text.rules.IToken;
 import org.eclipse.jface.text.rules.ITokenScanner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import poussecafe.eclipse.plugin.preferences.PreferenceConstants;
 import poussecafe.source.emil.parser.EmilParser.AggregateRootConsumptionContext;
 import poussecafe.source.emil.parser.EmilParser.CommandConsumptionContext;
 import poussecafe.source.emil.parser.EmilParser.ConsumptionContext;
@@ -118,15 +120,12 @@ public class EmilTokenScanner implements ITokenScanner {
     }
 
     private TextAttribute defaultTextAttribute() {
-        var foregroundColor = style.colorManager().getColor(Style.DEFAULT_FOREGROUND_COLOR);
-        var backgroundColor = style.colorManager().getColor(Style.DEFAULT_BACKGROUND_COLOR);
-        return new TextAttribute(foregroundColor, backgroundColor, 0, style.defaultTextFont());
+        return new TextAttribute(null, null, 0, null);
     }
 
     private TextAttribute keywordTextAttribute() {
-        var foregroundColor = style.colorManager().getColor(Style.KEYWORD_COLOR);
-        var backgroundColor = style.colorManager().getColor(Style.DEFAULT_BACKGROUND_COLOR);
-        return new TextAttribute(foregroundColor, backgroundColor, 0, style.defaultBoldTextFont());
+        var foregroundColor = style.colorManager().getColor(PreferenceConstants.EMIL_KEYWORD_COLOR);
+        return new TextAttribute(foregroundColor, null, 0, style.fontManager().defaultBoldTextFont());
     }
 
     private Style style;
@@ -155,15 +154,13 @@ public class EmilTokenScanner implements ITokenScanner {
     }
 
     private TextAttribute externalTextAttribute() {
-        var foregroundColor = style.colorManager().getColor(Style.EXTERNAL_COLOR);
-        var backgroundColor = style.colorManager().getColor(Style.DEFAULT_BACKGROUND_COLOR);
-        return new TextAttribute(foregroundColor, backgroundColor, 0, style.defaultTextFont());
+        var foregroundColor = style.colorManager().getColor(PreferenceConstants.EMIL_EXTERNAL_COLOR);
+        return new TextAttribute(foregroundColor, null, 0, null);
     }
 
     private TextAttribute eventNameTextAttribute() {
-        var foregroundColor = style.colorManager().getColor(Style.EVENT_NAME_COLOR);
-        var backgroundColor = style.colorManager().getColor(Style.DEFAULT_BACKGROUND_COLOR);
-        return new TextAttribute(foregroundColor, backgroundColor, 0, style.defaultTextFont());
+        var foregroundColor = style.colorManager().getColor(PreferenceConstants.EMIL_EVENT_COLOR);
+        return new TextAttribute(foregroundColor, null, 0, null);
     }
 
     private void computeMessageConsumptionsTokens(MessageConsumptionsContext messageConsumptions) {
@@ -209,9 +206,7 @@ public class EmilTokenScanner implements ITokenScanner {
     }
 
     private TextAttribute hookNameTextAttribute() {
-        var foregroundColor = style.colorManager().getColor(Style.DEFAULT_FOREGROUND_COLOR);
-        var backgroundColor = style.colorManager().getColor(Style.DEFAULT_BACKGROUND_COLOR);
-        return new TextAttribute(foregroundColor, backgroundColor, 0, style.defaultItalicTextFont());
+        return new TextAttribute(null, null, 0, style.fontManager().defaultItalicTextFont());
     }
 
     private void computeFactoryListenerTokens(FactoryListenerContext factoryListener) {
@@ -240,9 +235,8 @@ public class EmilTokenScanner implements ITokenScanner {
     }
 
     private TextAttribute nameTextAttribute() {
-        var foregroundColor = style.colorManager().getColor(Style.NAME_COLOR);
-        var backgroundColor = style.colorManager().getColor(Style.DEFAULT_BACKGROUND_COLOR);
-        return new TextAttribute(foregroundColor, backgroundColor, 0, style.defaultTextFont());
+        var foregroundColor = style.colorManager().getColor(PreferenceConstants.EMIL_NAME_COLOR);
+        return new TextAttribute(foregroundColor, null, 0, null);
     }
 
     private void computeQualifiedNameToken(QualifiedNameContext qualifiedFactoryName) {
@@ -254,15 +248,12 @@ public class EmilTokenScanner implements ITokenScanner {
     }
 
     private TextAttribute listenerNameTextAttribute() {
-        var foregroundColor = style.colorManager().getColor(Style.LISTENER_NAME_COLOR);
-        var backgroundColor = style.colorManager().getColor(Style.DEFAULT_BACKGROUND_COLOR);
-        return new TextAttribute(foregroundColor, backgroundColor, 0, style.defaultTextFont());
+        return new TextAttribute(null, null, 0, null);
     }
 
     private TextAttribute multiplicitySymbolTextAttribute() {
-        var foregroundColor = style.colorManager().getColor(Style.MULTIPLICITY_SYMBOL_COLOR);
-        var backgroundColor = style.colorManager().getColor(Style.DEFAULT_BACKGROUND_COLOR);
-        return new TextAttribute(foregroundColor, backgroundColor, 0, style.defaultBoldTextFont());
+        var foregroundColor = style.colorManager().getColor(PreferenceConstants.EMIL_MULTIPLICITY_COLOR);
+        return new TextAttribute(foregroundColor, null, 0, style.fontManager().defaultBoldTextFont());
     }
 
     private void computeEventProductionsTokens(EventProductionsContext eventProductions) {
@@ -322,9 +313,8 @@ public class EmilTokenScanner implements ITokenScanner {
     }
 
     private TextAttribute processNameTextAttribute() {
-        var foregroundColor = style.colorManager().getColor(Style.PROCESS_NAME_COLOR);
-        var backgroundColor = style.colorManager().getColor(Style.DEFAULT_BACKGROUND_COLOR);
-        return new TextAttribute(foregroundColor, backgroundColor, 0, style.defaultTextFont());
+        var foregroundColor = style.colorManager().getColor(PreferenceConstants.EMIL_PROCESS_COLOR);
+        return new TextAttribute(foregroundColor, null, 0, null);
     }
 
     private void computeEmptyConsumptionTokens(EmptyConsumptionContext emptyConsumption) {
@@ -339,9 +329,8 @@ public class EmilTokenScanner implements ITokenScanner {
     }
 
     private TextAttribute commandNameTextAttribute() {
-        var foregroundColor = style.colorManager().getColor(Style.COMMAND_NAME_COLOR);
-        var backgroundColor = style.colorManager().getColor(Style.DEFAULT_BACKGROUND_COLOR);
-        return new TextAttribute(foregroundColor, backgroundColor, 0, style.defaultTextFont());
+        var foregroundColor = style.colorManager().getColor(PreferenceConstants.EMIL_COMMAND_COLOR);
+        return new TextAttribute(foregroundColor, null, 0, null);
     }
 
     private Iterator<EmilToken> tokenIterator;

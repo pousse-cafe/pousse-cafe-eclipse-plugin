@@ -5,7 +5,7 @@ Bundle-SymbolicName: poussecafe.eclipse.plugin;singleton:=true
 Bundle-Version: 0.5.1.202407150850
 Automatic-Module-Name: pousse.cafe.eclipse.plugin
 Bundle-ActivationPolicy: lazy
-Bundle-RequiredExecutionEnvironment: JavaSE-11
+Bundle-RequiredExecutionEnvironment: JavaSE-17
 Require-Bundle: org.eclipse.ui,
  org.eclipse.core.runtime,
  org.eclipse.core.resources,

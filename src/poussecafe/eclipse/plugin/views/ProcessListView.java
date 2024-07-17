@@ -49,7 +49,9 @@ public class ProcessListView extends ViewPart {
         viewer.setLabelProvider(new ViewLabelProvider());
 
         getSite().setSelectionProvider(viewer);
-        getSite().getWorkbenchWindow().getSelectionService().addSelectionListener(selectionListener);
+        var selectionService = getSite().getWorkbenchWindow().getSelectionService();
+        selectionService.addSelectionListener(selectionListener);
+        selectionListener.selectionChanged(getSite().getWorkbenchWindow().getPartService().getActivePart(), selectionService.getSelection());
 
         registerDoubleClickAction();
         fillActionBar();
@@ -82,7 +84,11 @@ public class ProcessListView extends ViewPart {
 
         @Override
         public Image getImage(Object obj) {
-            return workbench.getSharedImages().getImage(ISharedImages.IMG_OBJ_ELEMENT);
+            if(obj != EMPTY_LIST) {
+                return workbench.getSharedImages().getImage(ISharedImages.IMG_OBJ_ELEMENT);
+            } else {
+                return null;
+            }
         }
     }
 
@@ -127,8 +133,10 @@ public class ProcessListView extends ViewPart {
     private PousseCafeProject currentProject;
 
     private void clearList() {
-        viewer.setInput(new String[] {});
+        viewer.setInput(new String[] { EMPTY_LIST });
     }
+
+    private static final String EMPTY_LIST = "No process to display, select a Pousse-Café project in the explorer";
 
     private ProjectListener projectListener = new ProjectListener();
 
@@ -163,12 +171,14 @@ public class ProcessListView extends ViewPart {
             public void run() {
                 IStructuredSelection selection = viewer.getStructuredSelection();
                 String processName = (String) selection.getFirstElement();
-                var openEmilEditor = new OpenEmilEditorAction.Builder()
-                        .processName(processName)
-                        .project(currentProject)
-                        .workbenchWindow(getSite().getWorkbenchWindow())
-                        .build();
-                openEmilEditor.run();
+                if(!EMPTY_LIST.equals(processName)) {
+                    var openEmilEditor = new OpenEmilEditorAction.Builder()
+                            .processName(processName)
+                            .project(currentProject)
+                            .workbenchWindow(getSite().getWorkbenchWindow())
+                            .build();
+                    openEmilEditor.run();
+                }
             }
         };
         viewer.addDoubleClickListener(event -> doubleClickAction.run());

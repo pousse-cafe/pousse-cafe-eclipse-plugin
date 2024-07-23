@@ -2,7 +2,7 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: Pousse-Café Eclipse Plugin
 Bundle-SymbolicName: poussecafe.eclipse.plugin;singleton:=true
-Bundle-Version: 0.5.1.202407150850
+Bundle-Version: 0.5.1.202407231452
 Automatic-Module-Name: pousse.cafe.eclipse.plugin
 Bundle-ActivationPolicy: lazy
 Bundle-RequiredExecutionEnvironment: JavaSE-17
@@ -21,17 +21,17 @@ Import-Package: javax.inject
 Bundle-Vendor: Pousse-Café Team
 Bundle-Activator: poussecafe.eclipse.plugin.core.PousseCafePlugin
 Bundle-ClassPath: .,
- slf4j-api-1.7.36.jar,
- slf4j-simple-1.7.30.jar,
- antlr4-runtime-4.8-1.jar,
- commons-io-2.7.jar,
- flying-saucer-core-9.1.20.jar,
- flying-saucer-pdf-9.1.20.jar,
- freemarker-2.3.30.jar,
- itext-2.1.7.jar,
  pousse-cafe-attribute-0.30.0-SNAPSHOT.jar,
  pousse-cafe-base-0.30.0-SNAPSHOT.jar,
  pousse-cafe-doc-0.30.0-SNAPSHOT.jar,
  pousse-cafe-source-0.30.0-SNAPSHOT.jar,
  pousse-cafe-core-0.30.0-SNAPSHOT.jar,
- bin/
+ bin/,
+ slf4j-api-2.0.13.jar,
+ slf4j-simple-2.0.13.jar,
+ antlr4-runtime-4.13.1.jar,
+ flying-saucer-core-9.9.0.jar,
+ flying-saucer-pdf-9.9.0.jar,
+ openpdf-2.0.2.jar,
+ commons-io-2.16.1.jar,
+ freemarker-2.3.33.jar
